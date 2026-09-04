@@ -1,0 +1,12 @@
+{
+  "products": [
+    {"id":"cfm-200","name":"Cornflake Mixture","pack":"200 g","category":"Mixtures","price":60,"mrp":60,"wholesalePrice":55,"unit":"packet","stock":100,"tag":"Best seller","description":"A crunchy, flavourful cornflake mixture made for everyday snacking."},
+    {"id":"cfm-500","name":"Cornflake Mixture","pack":"500 g","category":"Mixtures","price":145,"mrp":145,"wholesalePrice":135,"unit":"packet","stock":50,"tag":"Popular","description":"A family-size pack of our crunchy cornflake mixture."},
+    {"id":"snk-200","name":"Masala Snack Mix","pack":"200 g","category":"Snacks","price":65,"mrp":65,"wholesalePrice":60,"unit":"packet","stock":40,"tag":"New","description":"A savoury snack mix with a balanced masala flavour."},
+    {"id":"snk-500","name":"Masala Snack Mix","pack":"500 g","category":"Snacks","price":150,"mrp":150,"wholesalePrice":140,"unit":"packet","stock":25,"tag":"Popular","description":"A generous family pack for sharing."}
+  ],
+  "offers": {
+    "global": {"enabled": false, "text": ""},
+    "products": {}
+  }
+}
