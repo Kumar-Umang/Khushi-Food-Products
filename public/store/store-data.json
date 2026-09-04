@@ -1,0 +1,88 @@
+{
+  "business": {
+    "name": "Khushi Food Products",
+    "phone": "+91 80734 55939",
+    "gstin": "29AOGPR3564J1ZD",
+    "address": "207 Sowparnika Tharangini, Ittangur, Sarjapur, Bangalore - 562125"
+  },
+  "offers": {
+    "global": {
+      "enabled": false,
+      "text": ""
+    }
+  },
+  "products": [
+    {
+      "id": "p1",
+      "name": "Chana Makhana Laddu",
+      "category": "Laddu & Sweets",
+      "pack": "250 g",
+      "price": 200,
+      "mrp": 200,
+      "offerPrice": 0,
+      "offerLabel": "",
+      "image": "assets/products/ChanaMakhanaLaddu.jpeg",
+      "active": true
+    },
+    {
+      "id": "p2",
+      "name": "Corn Flakes Mixture",
+      "category": "Namkeen & Snacks",
+      "pack": "200 g",
+      "price": 0,
+      "mrp": 0,
+      "offerPrice": 0,
+      "offerLabel": "",
+      "image": "assets/products/Cornfloormixture.jpeg",
+      "active": true
+    },
+    {
+      "id": "p3",
+      "name": "Murmura Laddu",
+      "category": "Laddu & Sweets",
+      "pack": "",
+      "price": 0,
+      "mrp": 0,
+      "offerPrice": 0,
+      "offerLabel": "",
+      "image": "assets/products/MurmuraLaddu.jpeg",
+      "active": true
+    },
+    {
+      "id": "p4",
+      "name": "Nimki",
+      "category": "Namkeen & Snacks",
+      "pack": "",
+      "price": 0,
+      "mrp": 0,
+      "offerPrice": 0,
+      "offerLabel": "",
+      "image": "assets/products/Nimki.jpeg",
+      "active": true
+    },
+    {
+      "id": "p5",
+      "name": "Shakkarpara",
+      "category": "Namkeen & Snacks",
+      "pack": "",
+      "price": 0,
+      "mrp": 0,
+      "offerPrice": 0,
+      "offerLabel": "",
+      "image": "assets/products/Shakkarpara.jpeg",
+      "active": true
+    },
+    {
+      "id": "p6",
+      "name": "Thekua",
+      "category": "Traditional Specials",
+      "pack": "",
+      "price": 0,
+      "mrp": 0,
+      "offerPrice": 0,
+      "offerLabel": "",
+      "image": "assets/products/Thekua.jpeg",
+      "active": true
+    }
+  ]
+}
