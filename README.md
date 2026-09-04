@@ -1,22 +1,18 @@
-# Khushi Food Products – Customer Website
+# Khushi Food Products — Cloudflare Customer Website
 
-Cloudflare-ready static customer storefront.
+This package contains the customer-facing online shopping website only.
 
-## Files
-- `index.html` – customer shopping website
-- `css/app.css` – website styling
-- `js/app.js` – cart, profile, product browsing and checkout demo
-- `assets/logo.png` – Khushi Food Products logo
-- `assets/products/` – product photos (optional, 0–5 per product)
-- `store-data.json` – product and offer data used by the static site
+## Cloudflare deployment
+Use a Cloudflare Worker with Static Assets.
 
-## Cloudflare Pages
-Upload this folder to GitHub and connect the repository to Cloudflare Pages.
+- Build command: none
+- Deploy command: `npx wrangler deploy`
+- Root directory: `/`
+- `wrangler.jsonc` is already included.
 
-Build command: `exit 0`
-Build output directory: `/`
-
-No Node.js server is required for this customer-only static version.
+The customer site is served from `./public`.
 
 ## Important
-This is the customer frontend. Real login, customer accounts, order storage, payments, live stock, invoice PDF and WhatsApp automation will be connected to the backend/database in the next phase.
+This is the customer frontend. Product data is currently read from `public/store-data.json`, so this deployment is read-only from the website side. The Admin/backend, live orders, payments, shared stock, customer accounts, and WhatsApp automation require the production API/database that will be connected next.
+
+Do not deploy `.git`, secrets, local `server.js`, or local state files.
