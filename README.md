@@ -117,3 +117,20 @@ Razorpay's documentation recommends testing the full flow in Test Mode before sw
 - Stock & billing UI based on the existing bill-book module.
 - Central business state in D1 for stock, customers, sales, purchases, production, salary, expenses, returns, notes and reports.
 - Invoice endpoint returns a real PDF response.
+
+
+## Final hostname behavior
+
+All three hostnames intentionally serve the same customer home page at `/` and the home page contains no Admin/Login links.
+
+- `khushifoodproducts.in/` -> customer home + shopping + Razorpay
+- `controlpanel.khushifoodproducts.in/` -> same customer home
+- `stockandbilling.khushifoodproducts.in/` -> same customer home
+- `controlpanel.khushifoodproducts.in/control/` -> protected Control Panel login
+- `controlpanel.khushifoodproducts.in/setup.html` -> first-time administrator setup
+- `stockandbilling.khushifoodproducts.in/stock/` -> protected Stock & Billing login
+
+Razorpay is used only by the customer store checkout.
+
+## Customer Home Page
+All three configured hostnames intentionally serve the same Amazon.in-inspired customer home page at `/` with no Login/Admin/Stock links visible on the home page. Protected applications remain at `/control/` and `/stock/` on their respective subdomains.

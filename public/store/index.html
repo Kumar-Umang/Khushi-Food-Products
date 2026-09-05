@@ -1,70 +1,111 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Khushi Food Products | Online Store</title>
-<meta name="description" content="Shop fresh, homemade and wholesome products from Khushi Food Products.">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Khushi Food Products | Online Shopping</title>
+<meta name="description" content="Shop traditional snacks, laddus, namkeen and homemade favourites from Khushi Food Products.">
 <link rel="icon" href="assets/logo.png">
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
-<div class="topbar"><div class="wrap topbar-in"><span>🇮🇳 Made with love in Bangalore</span><span>WhatsApp: +91 80734 55939</span></div></div>
-<header class="amazon-head">
-  <div class="wrap head-main">
-    <button class="hamb" id="menuBtn">☰</button>
-    <a class="logo" href="#home"><img src="assets/logo.png" alt="Khushi Food Products"></a>
-    <div class="delivery"><small>Deliver to</small><b>India</b></div>
-    <div class="search"><select id="searchCategory"><option value="all">All</option></select><input id="search" placeholder="Search Khushi Food Products"><button id="searchBtn">🔍</button></div>
-    <button class="head-link" id="accountBtn"><small>Hello, sign in</small><b>Account & Lists</b></button>
-    <button class="head-link ordersBtn"><small>Returns</small><b>& Orders</b></button>
-    <button class="cart" id="cartBtn">🛒 <b>Cart</b><em id="cartCount">0</em></button>
+<div class="top-strip"><div class="page"><span>🇮🇳 Proudly made in Bangalore</span><span>Fresh • Traditional • Wholesome</span><span>WhatsApp: +91 80734 55939</span></div></div>
+
+<header class="site-header">
+  <div class="header-main page">
+    <a class="brand" href="#home" aria-label="Khushi Food Products home"><img src="assets/logo.png" alt="Khushi Food Products"></a>
+    <div class="deliver"><span>Deliver to</span><strong>India</strong></div>
+    <div class="search-box">
+      <select id="searchCategory" aria-label="Search category"><option value="all">All</option></select>
+      <input id="search" type="search" placeholder="Search Khushi Food Products" autocomplete="off">
+      <button id="searchBtn" aria-label="Search">🔍</button>
+    </div>
+    <button class="header-link" id="ordersInfo"><span>Customer care</span><strong>&amp; Orders</strong></button>
+    <button class="cart-link" id="cartBtn" aria-label="Open cart"><span class="cart-icon">🛒</span><span>Cart</span><b id="cartCount">0</b></button>
   </div>
-  <nav class="navline"><div class="wrap navin"><a href="#shop">All Products</a><a href="#shop">Namkeen & Snacks</a><a href="#shop">Laddu & Sweets</a><a href="#shop">Traditional Specials</a><a href="#about">About Us</a><a href="#contact">Contact</a></div></nav>
+  <nav class="nav-bar">
+    <div class="page nav-inner">
+      <button class="all-menu" id="menuBtn">☰ <b>All</b></button>
+      <a href="#shop">Best Sellers</a>
+      <a href="#shop">Namkeen &amp; Snacks</a>
+      <a href="#shop">Laddu &amp; Sweets</a>
+      <a href="#shop">Traditional Specials</a>
+      <a href="#shop">Offers</a>
+      <a href="#about">About Khushi</a>
+      <a href="#contact">Customer Service</a>
+    </div>
+  </nav>
 </header>
 
 <div id="offerBanner" class="offer-banner hidden"></div>
 
 <main id="home">
-<section class="hero wrap">
-  <div class="hero-copy"><span class="pill">KHUSHI FOOD PRODUCTS</span><h1>Pure. Fresh. Wholesome.</h1><p>Homemade favourites and traditional snacks, prepared with care and delivered to your doorstep.</p><a class="hero-btn" href="#shop">Shop now →</a></div>
-  <div class="hero-art"><img src="assets/products/ChanaMakhanaLaddu.jpeg" alt="Chana Makhana Laddu"></div>
-</section>
+  <section class="hero-wrap page">
+    <div class="hero-banner">
+      <div class="hero-copy">
+        <span class="hero-kicker">KHUSHI FOOD PRODUCTS</span>
+        <h1>Traditional taste.<br>Made with care.</h1>
+        <p>Shop homemade favourites, crunchy namkeen and festive sweets — delivered to your doorstep.</p>
+        <a class="hero-button" href="#shop">Shop now</a>
+      </div>
+      <div class="hero-products" aria-label="Featured products">
+        <div class="hero-photo photo-one"><img src="assets/products/ChanaMakhanaLaddu.jpeg" alt="Chana Makhana Laddu"></div>
+        <div class="hero-photo photo-two"><img src="assets/products/Nimki.jpeg" alt="Nimki"></div>
+        <div class="hero-photo photo-three"><img src="assets/products/Thekua.jpeg" alt="Thekua"></div>
+      </div>
+    </div>
+    <div class="hero-note"><span>🚚</span> Freshly packed orders &nbsp; • &nbsp; <span>💳</span> Secure online payment &nbsp; • &nbsp; <span>💬</span> Direct WhatsApp support</div>
+  </section>
 
-<section class="wrap quick-cats">
-  <button data-cat="all"><span>🛍️</span>All Products</button>
-  <button data-cat="Namkeen & Snacks"><span>🥨</span>Namkeen</button>
-  <button data-cat="Laddu & Sweets"><span>🍬</span>Laddu & Sweets</button>
-  <button data-cat="Traditional Specials"><span>🌾</span>Traditional</button>
-  <button data-cat="Offers"><span>🏷️</span>Offers</button>
-</section>
+  <section class="page category-section">
+    <div class="section-heading"><div><span class="section-kicker">SHOP BY CATEGORY</span><h2>Explore Khushi favourites</h2></div><a href="#shop">See all</a></div>
+    <div class="category-grid">
+      <button class="category-card" data-cat="Namkeen &amp; Snacks"><img src="assets/products/Nimki.jpeg" alt="Namkeen & Snacks"><strong>Namkeen &amp; Snacks</strong><span>Crunchy favourites</span></button>
+      <button class="category-card" data-cat="Laddu &amp; Sweets"><img src="assets/products/ChanaMakhanaLaddu.jpeg" alt="Laddu & Sweets"><strong>Laddu &amp; Sweets</strong><span>Sweet traditional treats</span></button>
+      <button class="category-card" data-cat="Traditional Specials"><img src="assets/products/Thekua.jpeg" alt="Traditional Specials"><strong>Traditional Specials</strong><span>Made the classic way</span></button>
+      <button class="category-card" data-cat="all"><img src="assets/products/Cornfloormixture.jpeg" alt="All products"><strong>All Products</strong><span>Browse the full store</span></button>
+    </div>
+  </section>
 
-<section class="wrap shop" id="shop">
-  <div class="shop-head"><div><span class="eyebrow">OUR STORE</span><h2>Popular products</h2></div>
-    <div class="sort"><label>Sort by</label><select id="sort"><option value="featured">Featured</option><option value="low">Price: Low to High</option><option value="high">Price: High to Low</option><option value="name">Name</option></select></div>
-  </div>
-  <div class="shop-layout">
-    <aside class="filters"><h3>Shop by category</h3><button class="filter active" data-cat="all">All products</button><button class="filter" data-cat="Namkeen & Snacks">Namkeen & Snacks</button><button class="filter" data-cat="Laddu & Sweets">Laddu & Sweets</button><button class="filter" data-cat="Traditional Specials">Traditional Specials</button><hr><h3>Availability</h3><label class="check"><input type="checkbox" id="availableOnly"> In stock / priced</label></aside>
-    <div><div class="results"><span id="resultText"></span><button class="clear hidden" id="clearSearch">Clear search</button></div><div class="grid" id="grid"></div><div class="empty hidden" id="empty">No products match your search.</div></div>
-  </div>
-</section>
+  <section class="page deals-section" id="shop">
+    <div class="section-heading"><div><span class="section-kicker">KHUSHI STORE</span><h2>Popular products</h2></div><div class="sort"><label for="sort">Sort by</label><select id="sort"><option value="featured">Featured</option><option value="low">Price: Low to High</option><option value="high">Price: High to Low</option><option value="name">Name</option></select></div></div>
+    <div class="shop-shell">
+      <aside class="filters">
+        <h3>Shop by category</h3>
+        <button class="filter active" data-cat="all">All products</button>
+        <button class="filter" data-cat="Namkeen &amp; Snacks">Namkeen &amp; Snacks</button>
+        <button class="filter" data-cat="Laddu &amp; Sweets">Laddu &amp; Sweets</button>
+        <button class="filter" data-cat="Traditional Specials">Traditional Specials</button>
+        <hr>
+        <h3>Availability</h3>
+        <label class="check"><input type="checkbox" id="availableOnly"> Priced products only</label>
+      </aside>
+      <div class="results-area">
+        <div class="results-row"><span id="resultText"></span><button class="clear hidden" id="clearSearch">Clear search</button></div>
+        <div class="product-grid" id="grid"></div>
+        <div class="empty hidden" id="empty">No products match your search.</div>
+      </div>
+    </div>
+  </section>
 
-<section class="wrap trust">
- <div><b>🌿 Quality Ingredients</b><span>Carefully selected ingredients</span></div><div><b>🏠 Homemade</b><span>Made with care</span></div><div><b>📦 Convenient Packs</b><span>Easy to order online</span></div><div><b>💬 Direct Support</b><span>WhatsApp +91 80734 55939</span></div>
-</section>
+  <section class="page benefits">
+    <div><span>🌿</span><strong>Quality ingredients</strong><small>Carefully selected</small></div>
+    <div><span>🏠</span><strong>Homemade goodness</strong><small>Prepared with care</small></div>
+    <div><span>📦</span><strong>Freshly packed</strong><small>Convenient packs</small></div>
+    <div><span>🔒</span><strong>Secure payment</strong><small>Powered by Razorpay</small></div>
+  </section>
 
-<section class="wrap about" id="about"><div class="about-logo"><img src="assets/logo.png" alt=""></div><div><span class="eyebrow">ABOUT US</span><h2>Made with love, served with happiness.</h2><p>Khushi Food Products brings traditional Indian snacks and homemade favourites to your home.</p><p class="muted">207 Sowparnika Tharangini, Ittangur, Sarjapur, Bangalore - 562125</p></div></section>
-<section class="contact wrap" id="contact"><div><span class="eyebrow">NEED HELP?</span><h2>Talk to Khushi Food Products</h2></div><a class="wa" href="https://wa.me/918073455939" target="_blank" rel="noopener">💬 WhatsApp us</a></section>
+  <section class="page about" id="about"><div class="about-logo"><img src="assets/logo.png" alt="Khushi Food Products"></div><div><span class="section-kicker">ABOUT KHUSHI</span><h2>Made with love, served with happiness.</h2><p>Khushi Food Products brings traditional Indian snacks and homemade favourites to your home.</p><p class="muted">207 Sowparnika Tharangini, Ittangur, Sarjapur, Bangalore - 562125</p></div></section>
+  <section class="page contact" id="contact"><div><span class="section-kicker">NEED HELP?</span><h2>We're happy to help.</h2><p>For product questions, orders or support, reach us directly.</p></div><a href="https://wa.me/918073455939" target="_blank" rel="noopener">💬 WhatsApp us</a></section>
 </main>
 
-<footer><div class="wrap foot"><div><img src="assets/logo.png" alt="Khushi Food Products"><p>Pure • Fresh • Wholesome</p></div><div><b>Customer Care</b><a href="https://wa.me/918073455939">WhatsApp</a><a href="#contact">Contact</a></div><div><b>Store</b><a href="#shop">All products</a><a href="admin.html">Store Control Panel</a></div></div><div class="copyright">© 2026 Khushi Food Products • GSTIN 29AOGPR3564J1ZD</div></footer>
+<footer><div class="page footer-grid"><div><img src="assets/logo.png" alt="Khushi Food Products"><p>Pure • Fresh • Wholesome</p></div><div><strong>Shop</strong><a href="#shop">All products</a><a href="#shop">Namkeen &amp; Snacks</a><a href="#shop">Laddu &amp; Sweets</a></div><div><strong>Customer care</strong><a href="#contact">Contact us</a><a href="https://wa.me/918073455939" target="_blank" rel="noopener">WhatsApp</a></div></div><div class="copyright">© <span id="year">2026</span> Khushi Food Products • GSTIN 29AOGPR3564J1ZD</div></footer>
 
-<div class="drawer hidden" id="cartDrawer"><div class="drawer-card"><div class="drawer-head"><h2>Your Cart</h2><button data-close="cartDrawer">×</button></div><div id="cartItems"></div><div class="cart-total"><span>Subtotal</span><b id="subtotal">₹0.00</b></div><button class="hero-btn full" id="checkoutBtn">Proceed to checkout</button></div></div>
-
-<div class="modal hidden" id="productModal"><div class="modal-card"><button class="modal-x" data-close="productModal">×</button><div id="productDetail"></div></div></div>
-<div class="modal hidden" id="accountModal"><div class="modal-card small"><button class="modal-x" data-close="accountModal">×</button><span class="eyebrow">MY ACCOUNT</span><h2>Your profile</h2><p class="muted">For now your profile is saved on this browser. Real multi-device accounts will be connected to the backend.</p><form id="profileForm"><label>Name<input id="pname" required></label><label>Mobile<input id="pmobile" required></label><label>Email<input id="pemail" type="email"></label><label>Address<textarea id="paddress"></textarea></label><button class="hero-btn full">Save profile</button></form></div></div>
-
+<div class="drawer hidden" id="cartDrawer"><div class="drawer-card"><div class="drawer-head"><h2>Your Cart</h2><button data-close="cartDrawer" aria-label="Close cart">×</button></div><div id="cartItems"></div><div class="cart-total"><span>Subtotal</span><b id="subtotal">₹0.00</b></div><button class="hero-button full" id="checkoutBtn">Proceed to checkout</button></div></div>
+<div class="modal hidden" id="productModal"><div class="modal-card"><button class="modal-x" data-close="productModal" aria-label="Close">×</button><div id="productDetail"></div></div></div>
 <div class="toast hidden" id="toast"></div>
-<div class="modal hidden" id="paymentStatusModal"><div class="modal-card small"><button class="modal-x" data-close="paymentStatusModal">×</button><span class="eyebrow">PAYMENT</span><h2 id="paymentStatusTitle">Payment status</h2><p id="paymentStatusText" class="muted"></p><button class="hero-btn full" data-close="paymentStatusModal">Continue</button></div></div>
+<div class="modal hidden" id="paymentStatusModal"><div class="modal-card small"><button class="modal-x" data-close="paymentStatusModal" aria-label="Close">×</button><span class="section-kicker">PAYMENT</span><h2 id="paymentStatusTitle">Payment status</h2><p id="paymentStatusText" class="muted"></p><button class="hero-button full" data-close="paymentStatusModal">Continue</button></div></div>
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script src="app.js"></script>
-</body></html>
+</body>
+</html>

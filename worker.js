@@ -123,7 +123,29 @@ export default {async fetch(request,env){const url=new URL(request.url);const ho
   if(url.pathname.startsWith("/api/"))return api(request,env,url,host);
   if(host==="www.khushifoodproducts.in"&&url.pathname==="/")return Response.redirect("https://khushifoodproducts.in/",301);
   if(PUBLIC_HOSTS.has(host)){if(url.pathname==="/"||url.pathname==="/index.html")return asset(env,request,"/store/index.html");if(url.pathname==="/app.js")return asset(env,request,"/store/app.js");if(url.pathname==="/app.css")return asset(env,request,"/store/app.css");if(url.pathname.startsWith("/assets/"))return asset(env,request,"/store"+url.pathname);return asset(env,request,"/store"+url.pathname)}
-  if(CONTROL_HOSTS.has(host)){if(url.pathname==="/setup.html")return asset(env,request,"/control/setup.html");if(url.pathname==="/"||url.pathname==="/index.html")return asset(env,request,"/control/index.html");return asset(env,request,url.pathname.startsWith("/store/")?url.pathname:"/store"+url.pathname)}
-  if(STOCK_HOSTS.has(host)){if(url.pathname==="/"||url.pathname==="/index.html")return asset(env,request,"/stock/index.html");return asset(env,request,"/stock"+url.pathname)}
+  // All three public hostnames intentionally open the SAME customer home page.
+  // Administrative applications are available only on explicit hidden paths.
+  if(CONTROL_HOSTS.has(host)){
+    if(url.pathname==="/"||url.pathname==="/index.html")return asset(env,request,"/store/index.html");
+    if(url.pathname==="/control"||url.pathname==="/control/")return asset(env,request,"/control/index.html");
+    if(url.pathname==="/control/index.html")return asset(env,request,"/control/index.html");
+    if(url.pathname==="/setup.html")return asset(env,request,"/control/setup.html");
+    if(url.pathname==="/control/setup.html")return asset(env,request,"/control/setup.html");
+    if(url.pathname==="/app.js")return asset(env,request,"/store/app.js");
+    if(url.pathname==="/app.css")return asset(env,request,"/store/app.css");
+    if(url.pathname.startsWith("/assets/"))return asset(env,request,"/store"+url.pathname);
+    if(url.pathname.startsWith("/control/"))return asset(env,request,url.pathname);
+    return asset(env,request,"/store"+url.pathname);
+  }
+  if(STOCK_HOSTS.has(host)){
+    if(url.pathname==="/"||url.pathname==="/index.html")return asset(env,request,"/store/index.html");
+    if(url.pathname==="/stock"||url.pathname==="/stock/")return asset(env,request,"/stock/index.html");
+    if(url.pathname==="/stock/index.html")return asset(env,request,"/stock/index.html");
+    if(url.pathname.startsWith("/stock/"))return asset(env,request,url.pathname);
+    if(url.pathname==="/app.js")return asset(env,request,"/store/app.js");
+    if(url.pathname==="/app.css")return asset(env,request,"/store/app.css");
+    if(url.pathname.startsWith("/assets/"))return asset(env,request,"/store"+url.pathname);
+    return asset(env,request,"/store"+url.pathname);
+  }
   return new Response("Host not configured",{status:404});
 }};
