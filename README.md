@@ -134,3 +134,16 @@ Razorpay is used only by the customer store checkout.
 
 ## Customer Home Page
 All three configured hostnames intentionally serve the same Amazon.in-inspired customer home page at `/` with no Login/Admin/Stock links visible on the home page. Protected applications remain at `/control/` and `/stock/` on their respective subdomains.
+
+
+## Correct routing and protected paths
+
+All three hostnames serve the same Amazon.in-inspired customer home page at `/`. The home page intentionally has no Admin/Login/Stock links.
+
+Protected applications are entered directly by URL:
+- Control Panel: `https://controlpanel.khushifoodproducts.in/control/`
+- First-time setup: `https://controlpanel.khushifoodproducts.in/setup.html`
+- Stock & Billing: `https://stockandbilling.khushifoodproducts.in/stock/`
+- Stock & Billing alias: `https://stockandbilling.khushifoodproducts.in/billing/`
+
+The Worker explicitly supports `/store/*` as well as `/` so opening `/store/` does not turn into a broken static copy whose JavaScript and CSS fail to load.
