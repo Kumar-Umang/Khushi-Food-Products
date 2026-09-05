@@ -147,3 +147,12 @@ Protected applications are entered directly by URL:
 - Stock & Billing alias: `https://stockandbilling.khushifoodproducts.in/billing/`
 
 The Worker explicitly supports `/store/*` as well as `/` so opening `/store/` does not turn into a broken static copy whose JavaScript and CSS fail to load.
+
+
+## Application URLs
+- Customer home: `https://khushifoodproducts.in/`
+- Control Panel login: `https://controlpanel.khushifoodproducts.in/control/` (also `/login` or `/admin`)
+- Stock & Billing login: `https://stockandbilling.khushifoodproducts.in/stock/` (also `/login` or `/billing`)
+- Control Panel setup: `https://controlpanel.khushifoodproducts.in/setup.html`
+
+The root `/` on all three hostnames always remains the same customer-facing home page and does not display login options.
