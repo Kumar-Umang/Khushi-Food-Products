@@ -8,6 +8,8 @@ let currentCat = "all";
 let bestOnly = false;
 let offersOnly = false;
 let searchTerm = "";
+let customer = null;
+let pendingCheckoutAfterAuth = false;
 
 try { cart = JSON.parse(localStorage.getItem(CART) || "[]"); } catch { cart = []; }
 
@@ -211,73 +213,41 @@ function showPaymentStatus(title, text) {
   showModal("paymentStatusModal");
 }
 
+
+async function loadCustomerSession() {
+  try { const r = await fetch('/api/customer/session', {cache:'no-store'}); const d = await r.json(); customer = d.authenticated ? d.customer : null; } catch { customer = null; }
+  updateCustomerHeader();
+  return customer;
+}
+function updateCustomerHeader(){ const el=$('#ordersInfo'); if(!el) return; if(customer){el.querySelector('span').textContent=`Hello, ${customer.full_name?.split(' ')[0]||'Customer'}`;el.querySelector('strong').textContent='& Orders';} else {el.querySelector('span').textContent='Customer care';el.querySelector('strong').textContent='& Orders';} }
+function setAuthTab(tab){ const reg=tab==='register'; $('#registerPanel')?.classList.toggle('hidden',!reg); $('#loginPanel')?.classList.toggle('hidden',reg); $('#registerTab')?.classList.toggle('active',reg); $('#loginTab')?.classList.toggle('active',!reg); }
+function showCustomerAuth(mode='register', pending=true){ pendingCheckoutAfterAuth=pending; setAuthTab(mode); showModal('customerAuthModal'); }
+function showCustomerAccount(){
+  const box=$('#customerAccountContent'); if(!box)return;
+  if(!customer){box.innerHTML='<span class="section-kicker">YOUR ACCOUNT</span><h2>Customer account</h2><p class="muted">Register during checkout to save your delivery address and see your orders.</p><div class="account-actions"><button id="accountRegister" type="button">Register</button><button id="accountSignin" type="button">Sign in</button></div>';} else {box.innerHTML=`<div class="account-summary"><span class="section-kicker">MY ACCOUNT</span><h2>${esc(customer.full_name)}</h2><div class="account-box"><b>Mobile</b><br>${esc(customer.mobile)}<br><br><b>Email</b><br>${esc(customer.email||'Not provided')}<br><br><b>WhatsApp updates</b>: ${esc(customer.whatsapp_consent||'N')}<br><b>Email updates</b>: ${esc(customer.email_consent||'N')}</div><div class="account-actions"><button id="myOrdersBtn" type="button">View my orders</button><button id="accountSignout" type="button">Sign out</button></div></div>`;}
+  showModal('customerAccountModal');
+}
+async function requireCustomerForCheckout(){ await loadCustomerSession(); if(customer) return true; showCustomerAuth('register',true); return false; }
 async function startRazorpayCheckout() {
+  if (!(await requireCustomerForCheckout())) return;
   if (!cart.length) return toast("Your cart is empty");
   const amount = cartTotalPaise();
   if (amount < 100) return showPaymentStatus("Minimum payment", "The minimum Razorpay order amount is ₹1.00.");
-
   const button = $("#checkoutBtn");
   if (button) { button.disabled = true; button.textContent = "Creating secure payment…"; }
   try {
-    const orderResponse = await fetch("/api/create-order", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ amount, currency: "INR", receipt: `umvika_${Date.now()}` })
-    });
-    let order = {};
-    try { order = await orderResponse.json(); } catch {}
-    if (!orderResponse.ok || !order.order_id) throw new Error(order.error || "Unable to create payment order");
-
-    const keyResponse = await fetch("/api/razorpay-key", { cache: "no-store" });
-    const keyData = await keyResponse.json();
-    if (!keyResponse.ok || !keyData.key_id) throw new Error(keyData.error || "Razorpay is not configured");
-    if (typeof window.Razorpay !== "function") throw new Error("Razorpay Checkout could not be loaded");
-
-    let profile = {};
-    try { profile = JSON.parse(localStorage.getItem(PROFILE) || "{}"); } catch {}
-
-    const options = {
-      key: keyData.key_id,
-      order_id: order.order_id,
-      amount: order.amount,
-      currency: order.currency,
-      name: "UMVIKA FOODS",
-      description: "Online order",
-      image: "/store/assets/logo.png",
-      prefill: { name: profile.name || "", email: profile.email || "", contact: profile.mobile || "" },
-      theme: { color: "#216b19" },
-      handler: async (response) => {
-        try {
-          const verifyResponse = await fetch("/api/verify-payment", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(response)
-          });
-          let verification = {};
-          try { verification = await verifyResponse.json(); } catch {}
-          if (!verifyResponse.ok || !verification.verified) throw new Error(verification.error || "Payment verification failed");
-          cart = [];
-          saveCart();
-          renderCart();
-          hideModal("cartDrawer");
-          showPaymentStatus("Payment successful", `Your payment was verified successfully. Payment ID: ${response.razorpay_payment_id}`);
-        } catch (error) {
-          showPaymentStatus("Payment verification failed", error.message || "We could not verify the payment. Please contact support.");
-        }
-      },
-      modal: { ondismiss: () => toast("Payment cancelled") }
-    };
-    const razorpay = new window.Razorpay(options);
-    razorpay.on("payment.failed", (response) => {
-      const error = response?.error || {};
-      showPaymentStatus("Payment failed", error.description || error.reason || "Razorpay could not complete the payment.");
-    });
-    razorpay.open();
-  } catch (error) {
-    showPaymentStatus("Payment error", error.message || "Unable to start payment. Please try again.");
-  } finally {
-    if (button) { button.disabled = false; button.textContent = "Proceed to checkout"; }
-  }
+    const items=cart.map(i=>({id:i.id,qty:Number(i.qty)}));
+    const orderResponse = await fetch("/api/create-order", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({items})});
+    let order={}; try{order=await orderResponse.json()}catch{}
+    if(!orderResponse.ok||!order.order_id) throw new Error(order.error||"Unable to create payment order");
+    const keyResponse=await fetch("/api/razorpay-key",{cache:"no-store"}); const keyData=await keyResponse.json();
+    if(!keyResponse.ok||!keyData.key_id) throw new Error(keyData.error||"Razorpay is not configured");
+    if(typeof window.Razorpay!=="function") throw new Error("Razorpay Checkout could not be loaded");
+    const options={key:keyData.key_id,order_id:order.order_id,amount:order.amount,currency:order.currency,name:"UMVIKA FOODS",description:`Order ${order.order_number}`,image:"/store/assets/logo.png",prefill:{name:order.customer?.full_name||customer?.full_name||"",email:order.customer?.email||customer?.email||"",contact:order.customer?.mobile||customer?.mobile||""},theme:{color:"#216b19"},handler:async(response)=>{
+      try{const vr=await fetch("/api/verify-payment",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(response)});let vd={};try{vd=await vr.json()}catch{}if(!vr.ok||!vd.verified)throw new Error(vd.error||"Payment verification failed");cart=[];saveCart();renderCart();hideModal("cartDrawer");showPaymentStatus("Payment successful",`Order ${vd.order_number} confirmed. Payment ID: ${response.razorpay_payment_id}`);}catch(e){showPaymentStatus("Payment verification failed",e.message||"We could not verify the payment. Please contact support.")}
+    },modal:{ondismiss:()=>toast("Payment cancelled")}};
+    const rz=new window.Razorpay(options);rz.on("payment.failed",(response)=>{const er=response?.error||{};showPaymentStatus("Payment failed",er.description||er.reason||"Razorpay could not complete the payment.")});rz.open();
+  }catch(error){showPaymentStatus("Payment error",error.message||"Unable to start payment. Please try again.")}finally{if(button){button.disabled=false;button.textContent="Proceed to checkout"}}
 }
 
 function closeAnyOverlay(target) {
@@ -288,6 +258,19 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     hideAllOverlays();
   }
+});
+
+
+$('#registerTab')?.addEventListener('click',()=>setAuthTab('register'));
+$('#loginTab')?.addEventListener('click',()=>setAuthTab('login'));
+$('#registerForm')?.addEventListener('submit',async(e)=>{
+  e.preventDefault(); const form=e.currentTarget; const err=$('#registerError'); if(err)err.classList.add('hidden');
+  const fd=new FormData(form); const body=Object.fromEntries(fd.entries()); body.whatsappConsent=fd.has('whatsappConsent')?'Y':'N'; body.emailConsent=fd.has('emailConsent')?'Y':'N';
+  try{const r=await fetch('/api/customer/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});let d={};try{d=await r.json()}catch{};if(!r.ok)throw new Error(d.error||'Registration failed');await loadCustomerSession();hideModal('customerAuthModal');if(pendingCheckoutAfterAuth){pendingCheckoutAfterAuth=false;await startRazorpayCheckout();}else{toast('Account created successfully');}}catch(e){if(err){err.textContent=e.message;err.classList.remove('hidden')}}
+});
+$('#customerLoginForm')?.addEventListener('submit',async(e)=>{
+  e.preventDefault(); const form=e.currentTarget; const err=$('#loginError'); if(err)err.classList.add('hidden'); const body=Object.fromEntries(new FormData(form).entries());
+  try{const r=await fetch('/api/customer/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});let d={};try{d=await r.json()}catch{};if(!r.ok)throw new Error(d.error||'Sign in failed');await loadCustomerSession();hideModal('customerAuthModal');if(pendingCheckoutAfterAuth){pendingCheckoutAfterAuth=false;await startRazorpayCheckout();}else toast('Signed in successfully');}catch(e){if(err){err.textContent=e.message;err.classList.remove('hidden')}}
 });
 
 document.addEventListener("click", (event) => {
@@ -342,9 +325,14 @@ document.addEventListener("click", (event) => {
   }
 
   if (event.target.id === "ordersInfo" || event.target.closest("#ordersInfo")) {
-    location.hash = "contact";
+    showCustomerAccount();
     return;
   }
+
+  if(event.target.id==='accountRegister'){hideModal('customerAccountModal');showCustomerAuth('register',false);return;}
+  if(event.target.id==='accountSignin'){hideModal('customerAccountModal');showCustomerAuth('login',false);return;}
+  if(event.target.id==='accountSignout'){fetch('/api/customer/logout',{method:'POST'}).finally(()=>{customer=null;updateCustomerHeader();hideModal('customerAccountModal');toast('Signed out');});return;}
+  if(event.target.id==='myOrdersBtn'){fetch('/api/customer/orders',{cache:'no-store'}).then(r=>r.json()).then(d=>{const text=(d.orders||[]).map(o=>`${o.order_number} — ₹${(Number(o.total_amount||0)/100).toFixed(2)} — ${o.status} — ${o.delivery_city}, ${o.delivery_state} ${o.delivery_pincode}`).join('\n');showPaymentStatus('My orders',text||'No orders yet.');}).catch(()=>toast('Unable to load orders'));return;}
 
   closeAnyOverlay(event.target);
 });
@@ -365,6 +353,7 @@ $("#availableOnly")?.addEventListener("change", renderProducts);
 $("#clearSearch")?.addEventListener("click", () => { if ($("#search")) $("#search").value = ""; searchTerm = ""; renderProducts(); });
 
 loadStore();
+loadCustomerSession();
 
 window.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll('.modal, .drawer').forEach(el => el.setAttribute('aria-hidden', el.classList.contains('hidden') ? 'true' : 'false'));

@@ -2,7 +2,9 @@ const PUBLIC_HOSTS = new Set(["khushifoodproducts.in", "www.khushifoodproducts.i
 const CONTROL_HOSTS = new Set(["controlpanel.khushifoodproducts.in"]);
 const STOCK_HOSTS = new Set(["stockandbilling.khushifoodproducts.in"]);
 const COOKIE = "umvika_session";
+const CUSTOMER_COOKIE = "umvika_customer_session";
 const SESSION_DAYS = 7;
+const CUSTOMER_SESSION_DAYS = 30;
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -11,12 +13,89 @@ const html = (s,status=200) => new Response(s,{status,headers:{"content-type":"t
 
 async function sha256Hex(input){const b=typeof input==="string"?encoder.encode(input):input;const h=await crypto.subtle.digest("SHA-256",b);return [...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,"0")).join("")}
 function rand(n=32){const b=new Uint8Array(n);crypto.getRandomValues(b);return [...b].map(x=>x.toString(16).padStart(2,"0")).join("")}
-async function hashPassword(password,salt){const key=await crypto.subtle.importKey("raw",encoder.encode(password),"PBKDF2",false,["deriveBits"]);const bits=await crypto.subtle.deriveBits({name:"PBKDF2",salt:encoder.encode(salt),iterations:120000,hash:"SHA-256"},key,256);return [...new Uint8Array(bits)].map(x=>x.toString(16).padStart(2,"0")).join("")}
+async function hashPassword(password,salt){const key=await crypto.subtle.importKey("raw",encoder.encode(password),"PBKDF2",false,["deriveBits"]);const bits=await crypto.subtle.deriveBits({name:"PBKDF2",salt:encoder.encode(salt),iterations:100000,hash:"SHA-256"},key,256);return [...new Uint8Array(bits)].map(x=>x.toString(16).padStart(2,"0")).join("")}
 function parseCookies(request){const out={};for(const p of (request.headers.get("Cookie")||"").split(";")){const i=p.indexOf("=");if(i>0)out[p.slice(0,i).trim()]=decodeURIComponent(p.slice(i+1).trim())}return out}
 function setCookie(token){return `${COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${SESSION_DAYS*86400}`}
 function clearCookie(){return `${COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`}
 async function session(request,env){const t=parseCookies(request)[COOKIE];if(!t)return null;const th=await sha256Hex(t);return env.DB.prepare("SELECT s.user_id,u.username,u.role FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=? AND s.expires_at>datetime('now')").bind(th).first()}
 async function requireAuth(request,env){const s=await session(request,env);return s||false}
+
+function setCustomerCookie(token){return `${CUSTOMER_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${CUSTOMER_SESSION_DAYS*86400}`}
+function clearCustomerCookie(){return `${CUSTOMER_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`}
+async function customerSession(request,env){const t=parseCookies(request)[CUSTOMER_COOKIE];if(!t)return null;const th=await sha256Hex(t);return env.DB.prepare("SELECT s.customer_id,c.full_name,c.mobile,c.email,c.whatsapp_consent,c.email_consent FROM customer_sessions s JOIN customer_accounts c ON c.id=s.customer_id WHERE s.token_hash=? AND s.expires_at>datetime('now') AND c.active='Y'").bind(th).first()}
+function normalizeMobile(v){return String(v||'').replace(/\D/g,'').replace(/^91(?=\d{10}$)/,'')}
+function validMobile(v){return /^\d{10}$/.test(v)}
+function validPincode(v){return /^\d{6}$/.test(String(v||''))}
+async function getCustomerWithAddress(env,customerId){return env.DB.prepare(`SELECT c.id,c.full_name,c.mobile,c.email,c.whatsapp_consent,c.email_consent,a.address_line1,a.address_line2,a.landmark,a.city,a.state,a.pincode FROM customer_accounts c LEFT JOIN customer_addresses a ON a.customer_id=c.id AND a.is_default='Y' WHERE c.id=? AND c.active='Y'`).bind(customerId).first()}
+async function createCustomerSession(env,customerId){const token=rand(32),th=await sha256Hex(token);await env.DB.prepare("DELETE FROM customer_sessions WHERE customer_id=? OR expires_at<=datetime('now')").bind(customerId).run();await env.DB.prepare("INSERT INTO customer_sessions(token_hash,customer_id,expires_at) VALUES(?,?,datetime('now',?))").bind(th,customerId,`+${CUSTOMER_SESSION_DAYS} days`).run();return token}
+async function customerRegister(request,env){
+  let b={};try{b=await request.json()}catch{return json({ok:false,error:'Invalid JSON body'},400)}
+  const fullName=String(b.fullName||'').trim();const mobile=normalizeMobile(b.mobile);const email=String(b.email||'').trim().toLowerCase();const password=String(b.password||'');const confirm=String(b.confirmPassword||'');
+  const address1=String(b.addressLine1||'').trim();const address2=String(b.addressLine2||'').trim();const landmark=String(b.landmark||'').trim();const city=String(b.city||'').trim();const state=String(b.state||'').trim();const pincode=String(b.pincode||'').trim();
+  const whatsappConsent=String(b.whatsappConsent||'N').toUpperCase()==='Y'?'Y':'N';const emailConsent=String(b.emailConsent||'N').toUpperCase()==='Y'?'Y':'N';
+  if(fullName.length<2)return json({ok:false,error:'Enter your full name'},400);
+  if(!validMobile(mobile))return json({ok:false,error:'Enter a valid 10-digit mobile number'},400);
+  if(email && !/^\S+@\S+\.\S+$/.test(email))return json({ok:false,error:'Enter a valid email address'},400);
+  if(password.length<8)return json({ok:false,error:'Password must be at least 8 characters'},400);
+  if(password!==confirm)return json({ok:false,error:'Passwords do not match'},400);
+  if(!address1||!city||!state||!validPincode(pincode))return json({ok:false,error:'Complete your delivery address and valid 6-digit pincode'},400);
+  if(!email) { /* email consent remains N when no email is provided */ }
+  const existing=await env.DB.prepare("SELECT id FROM customer_accounts WHERE mobile=?").bind(mobile).first();
+  if(existing)return json({ok:false,error:'An account already exists for this mobile number. Please sign in.'},409);
+  const salt=rand(16),ph=await hashPassword(password,salt);
+  let r;try{r=await env.DB.prepare("INSERT INTO customer_accounts(full_name,mobile,email,password_hash,salt,whatsapp_consent,email_consent,active) VALUES(?,?,?,?,?,?,?,'Y')").bind(fullName,mobile,email||null,ph,salt,whatsappConsent,email?emailConsent:'N').run();
+    const cid=r.meta.last_row_id;
+    await env.DB.prepare("INSERT INTO customer_addresses(customer_id,address_line1,address_line2,landmark,city,state,pincode,is_default) VALUES(?,?,?,?,?,?,?,'Y')").bind(cid,address1,address2||null,landmark||null,city,state,pincode).run();
+    const token=await createCustomerSession(env,cid);
+    return json({ok:true,customer:{id:cid,full_name:fullName,mobile,email},message:'Registration successful'},200,{'Set-Cookie':setCustomerCookie(token)});
+  }catch(e){return json({ok:false,error:'Unable to create customer account'},500)}
+}
+async function customerLogin(request,env){
+  let b={};try{b=await request.json()}catch{return json({ok:false,error:'Invalid JSON body'},400)}
+  const mobile=normalizeMobile(b.mobile),password=String(b.password||'');if(!validMobile(mobile)||!password)return json({ok:false,error:'Mobile number and password are required'},400);
+  const c=await env.DB.prepare("SELECT * FROM customer_accounts WHERE mobile=? AND active='Y'").bind(mobile).first();if(!c)return json({ok:false,error:'Invalid mobile number or password'},401);
+  const h=await hashPassword(password,c.salt);if(h!==c.password_hash)return json({ok:false,error:'Invalid mobile number or password'},401);
+  const token=await createCustomerSession(env,c.id);return json({ok:true,customer:{id:c.id,full_name:c.full_name,mobile:c.mobile,email:c.email,whatsapp_consent:c.whatsapp_consent,email_consent:c.email_consent}},200,{'Set-Cookie':setCustomerCookie(token)})
+}
+async function customerMe(request,env){const s=await customerSession(request,env);if(!s)return json({authenticated:false});const c=await getCustomerWithAddress(env,s.customer_id);return json({authenticated:true,customer:c})}
+async function customerLogout(request,env){const t=parseCookies(request)[CUSTOMER_COOKIE];if(t)await env.DB.prepare("DELETE FROM customer_sessions WHERE token_hash=?").bind(await sha256Hex(t)).run();return json({ok:true},200,{'Set-Cookie':clearCustomerCookie()})}
+async function updateCustomerProfile(request,env,s){
+  let b={};try{b=await request.json()}catch{return json({ok:false,error:'Invalid JSON body'},400)}
+  const fullName=String(b.fullName||'').trim();const email=String(b.email||'').trim().toLowerCase();const address1=String(b.addressLine1||'').trim();const address2=String(b.addressLine2||'').trim();const landmark=String(b.landmark||'').trim();const city=String(b.city||'').trim();const state=String(b.state||'').trim();const pincode=String(b.pincode||'').trim();const whatsappConsent=String(b.whatsappConsent||'N').toUpperCase()==='Y'?'Y':'N';const emailConsent=String(b.emailConsent||'N').toUpperCase()==='Y'?'Y':'N';
+  if(fullName.length<2||!address1||!city||!state||!validPincode(pincode))return json({ok:false,error:'Please complete your name and delivery address'},400);
+  if(email && !/^\S+@\S+\.\S+$/.test(email))return json({ok:false,error:'Enter a valid email address'},400);
+  await env.DB.prepare("UPDATE customer_accounts SET full_name=?,email=?,whatsapp_consent=?,email_consent=?,updated_at=datetime('now') WHERE id=?").bind(fullName,email||null,whatsappConsent,email?emailConsent:'N',s.customer_id).run();
+  const old=await env.DB.prepare("SELECT id FROM customer_addresses WHERE customer_id=? AND is_default='Y'").bind(s.customer_id).first();
+  if(old) await env.DB.prepare("UPDATE customer_addresses SET address_line1=?,address_line2=?,landmark=?,city=?,state=?,pincode=?,updated_at=datetime('now') WHERE id=?").bind(address1,address2||null,landmark||null,city,state,pincode,old.id).run();
+  else await env.DB.prepare("INSERT INTO customer_addresses(customer_id,address_line1,address_line2,landmark,city,state,pincode,is_default) VALUES(?,?,?,?,?,?,?,'Y')").bind(s.customer_id,address1,address2||null,landmark||null,city,state,pincode).run();
+  return customerMe(request,env);
+}
+async function customerOrders(request,env){const s=await customerSession(request,env);if(!s)return unauthorized();const rows=await env.DB.prepare("SELECT id,order_number,total_amount,currency,status,delivery_city,delivery_state,delivery_pincode,created_at FROM customer_orders WHERE customer_id=? ORDER BY id DESC").bind(s.customer_id).all();return json({orders:rows.results||[]})}
+function catalogPriceMap(catalog){const m=new Map();for(const p of (catalog?.products||[])){if(p.active===false)continue;const price=Number(p.offerPrice)>0?Number(p.offerPrice):Number(p.price||0);m.set(String(p.id),{id:String(p.id),name:String(p.name||''),pack:String(p.pack||''),price});}return m}
+async function createCustomerRazorpayOrder(request,env){
+  const c=await customerSession(request,env);if(!c)return unauthorized();
+  let b={};try{b=await request.json()}catch{return json({ok:false,error:'Invalid JSON body'},400)}
+  const items=Array.isArray(b.items)?b.items:[];if(!items.length)return json({ok:false,error:'Your cart is empty'},400);
+  const customer=await getCustomerWithAddress(env,c.customer_id);if(!customer?.address_line1||!customer?.city||!customer?.state||!customer?.pincode)return json({ok:false,error:'Please complete your delivery address before payment'},400);
+  const catalog=await getKV(env,'store_catalog',seedCatalog);const map=catalogPriceMap(catalog);const normalized=[];let subtotal=0;
+  for(const i of items){const id=String(i.id||'');const qty=Math.floor(Number(i.qty));const p=map.get(id);if(!p||!Number.isFinite(qty)||qty<1||qty>999)return json({ok:false,error:'Invalid cart item'},400);const line=Math.round(p.price*100)*qty;subtotal+=line;normalized.push({id:p.id,name:p.name,pack:p.pack,price:p.price,qty,line});}
+  if(subtotal<100)return json({ok:false,error:'Order total must be at least ₹1.00'},400);
+  const orderNo=`UMV-${Date.now()}-${String(Math.floor(Math.random()*1000)).padStart(3,'0')}`;let localOrder;
+  try{const r=await env.DB.prepare(`INSERT INTO customer_orders(order_number,customer_id,subtotal,total_amount,currency,status,delivery_name,delivery_mobile,delivery_email,delivery_address_line1,delivery_address_line2,delivery_landmark,delivery_city,delivery_state,delivery_pincode) VALUES(?,?,?,?,?,'PENDING_PAYMENT',?,?,?,?,?,?,?, ?,?)`).bind(orderNo,c.customer_id,subtotal,subtotal,'INR',customer.full_name,customer.mobile,customer.email,customer.address_line1,customer.address_line2,customer.landmark,customer.city,customer.state,customer.pincode).run();localOrder=r.meta.last_row_id;
+    for(const i of normalized) await env.DB.prepare("INSERT INTO customer_order_items(customer_order_id,product_id,product_name,pack,unit_price,quantity,line_total) VALUES(?,?,?,?,?,?,?)").bind(localOrder,i.id,i.name,i.pack||null,i.price,i.qty,i.line).run();
+  }catch(e){return json({ok:false,error:'Could not create local customer order'},500)}
+  const receipt=orderNo.slice(0,40);const payload={amount:subtotal,currency:'INR',receipt};let response;try{response=await fetch('https://api.razorpay.com/v1/orders',{method:'POST',headers:{'Authorization':basicAuth(env.RAZORPAY_KEY_ID,env.RAZORPAY_KEY_SECRET),'Content-Type':'application/json'},body:JSON.stringify(payload)})}catch(e){await env.DB.prepare("UPDATE customer_orders SET status='PAYMENT_INIT_FAILED',updated_at=datetime('now') WHERE id=?").bind(localOrder).run();return json({ok:false,error:'Unable to reach Razorpay'},500)}
+  let data={};try{data=await response.json()}catch{}if(response.status===401)return json({ok:false,error:'Razorpay authentication failed'},401);if(!response.ok){await env.DB.prepare("UPDATE customer_orders SET status='PAYMENT_INIT_FAILED',updated_at=datetime('now') WHERE id=?").bind(localOrder).run();return json({ok:false,error:data.error?.description||data.error?.reason||'Razorpay order creation failed'},500)}
+  try{await env.DB.prepare("INSERT INTO checkout_orders(razorpay_order_id,customer_order_id,amount,currency,receipt,status) VALUES(?,?,?,?,?,'created')").bind(data.id,localOrder,data.amount,data.currency,data.receipt||receipt).run();return json({ok:true,order_id:data.id,amount:data.amount,currency:data.currency,customer_order_id:localOrder,order_number:orderNo,customer:{full_name:customer.full_name,mobile:customer.mobile,email:customer.email}})}catch(e){return json({ok:false,error:'Razorpay order created but could not be recorded'},500)}
+}
+async function verifyCustomerRazorpayPayment(request,env){
+  const c=await customerSession(request,env);if(!c)return unauthorized();if(!razorpayConfigured(env))return json({ok:false,error:'Razorpay is not configured on the server'},500);let b={};try{b=await request.json()}catch{return json({ok:false,error:'Invalid JSON body'},400)}
+  const paymentId=String(b.razorpay_payment_id||''),orderId=String(b.razorpay_order_id||''),signature=String(b.razorpay_signature||'');if(!paymentId||!orderId||!signature)return json({ok:false,error:'Payment verification fields are required'},400);
+  const local=await env.DB.prepare("SELECT co.razorpay_order_id,co.customer_order_id,co.status,co.amount,co.currency,co.payment_id,co.verified_at,co.customer_order_id AS local_customer_order_id FROM checkout_orders co JOIN customer_orders o ON o.id=co.customer_order_id WHERE co.razorpay_order_id=? AND o.customer_id=?").bind(orderId,c.customer_id).first();if(!local)return json({ok:false,error:'Unknown payment order'},400);
+  if(local.status==='signature_verified')return json({ok:true,verified:true,customer_order_id:local.customer_order_id,razorpay_payment_id:local.payment_id});
+  const expected=await razorpaySignature(local.razorpay_order_id,paymentId,env.RAZORPAY_KEY_SECRET);if(expected.length!==signature.length)return json({ok:false,error:'Payment signature verification failed'},400);let mismatch=0;for(let i=0;i<expected.length;i++)mismatch|=expected.charCodeAt(i)^signature.charCodeAt(i);if(mismatch!==0)return json({ok:false,error:'Payment signature verification failed'},400);
+  await env.DB.prepare("UPDATE checkout_orders SET status='signature_verified',payment_id=?,verified_at=datetime('now') WHERE razorpay_order_id=?").bind(paymentId,orderId).run();await env.DB.prepare("UPDATE customer_orders SET status='PAID',updated_at=datetime('now') WHERE id=?").bind(local.customer_order_id).run();const ord=await env.DB.prepare("SELECT order_number FROM customer_orders WHERE id=?").bind(local.customer_order_id).first();return json({ok:true,verified:true,customer_order_id:local.customer_order_id,order_number:ord?.order_number||'',razorpay_payment_id:paymentId})
+}
 
 const seedCatalog={business:{name:"UMVIKA FOODS",phone:"+91 80734 55939",gstin:"29AOGPR3564J1ZD",address:"207 Sowparnika Tharangini, Ittangur, Sarjapur, Bangalore - 562125"},offers:{global:{enabled:false,text:""}},products:[
 {id:"p1",name:"Chana Makhana Laddu",category:"Laddu & Sweets",pack:"250 g",price:200,mrp:200,offerPrice:0,offerLabel:"",image:"/store/assets/products/ChanaMakhanaLaddu.jpeg",photos:["/store/assets/products/ChanaMakhanaLaddu.jpeg"],active:true},
@@ -108,8 +187,14 @@ async function api(request,env,url,host){
   if(url.pathname==="/api/logout"&&request.method==="POST"){const t=parseCookies(request)[COOKIE];if(t)await env.DB.prepare("DELETE FROM sessions WHERE token_hash=?").bind(await sha256Hex(t)).run();return json({ok:true},200,{"Set-Cookie":clearCookie()})}
   if(url.pathname==="/api/session"&&request.method==="GET"){const s=await session(request,env);return json({authenticated:!!s,user:s?{username:s.username,role:s.role}:null})}
   if(url.pathname==="/api/razorpay-key"&&request.method==="GET")return razorpayConfigured(env)?json({ok:true,key_id:env.RAZORPAY_KEY_ID}):json({ok:false,error:"Razorpay is not configured"},500);
-  if(url.pathname==="/api/create-order"&&request.method==="POST")return createRazorpayOrder(request,env);
-  if(url.pathname==="/api/verify-payment"&&request.method==="POST")return verifyRazorpayPayment(request,env);
+  if(url.pathname==="/api/customer/register"&&request.method==="POST")return customerRegister(request,env);
+  if(url.pathname==="/api/customer/login"&&request.method==="POST")return customerLogin(request,env);
+  if(url.pathname==="/api/customer/session"&&request.method==="GET")return customerMe(request,env);
+  if(url.pathname==="/api/customer/logout"&&request.method==="POST")return customerLogout(request,env);
+  if(url.pathname==="/api/customer/profile"&&request.method==="PUT"){const s=await customerSession(request,env);if(!s)return unauthorized();return updateCustomerProfile(request,env,s)}
+  if(url.pathname==="/api/customer/orders"&&request.method==="GET")return customerOrders(request,env);
+  if(url.pathname==="/api/create-order"&&request.method==="POST")return createCustomerRazorpayOrder(request,env);
+  if(url.pathname==="/api/verify-payment"&&request.method==="POST")return verifyCustomerRazorpayPayment(request,env);
   if(url.pathname==="/api/store"&&request.method==="GET"){let c=await getKV(env,"store_catalog",seedCatalog);return json(c)}
   if(url.pathname==="/api/change-credentials"&&request.method==="POST"){const s=await requireAuth(request,env);if(!s)return unauthorized();return changeCredentials(request,env,s)}
   if(url.pathname==="/api/control"&&(request.method==="GET"||request.method==="POST")){const s=await requireAuth(request,env);if(!s)return unauthorized();if(request.method==="GET")return json({state:await getKV(env,"store_catalog",seedCatalog),user:{username:s.username,role:s.role}});let b=await request.json();if(!b||!Array.isArray(b.products))return json({ok:false,error:"Invalid catalog"},400);await putKV(env,"store_catalog",b);return json({ok:true})}

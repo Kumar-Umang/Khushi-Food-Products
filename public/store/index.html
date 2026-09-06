@@ -104,6 +104,51 @@
 <div class="drawer hidden" id="cartDrawer"><div class="drawer-card"><div class="drawer-head"><h2>Your Cart</h2><button data-close="cartDrawer" aria-label="Close cart">×</button></div><div id="cartItems"></div><div class="cart-total"><span>Subtotal</span><b id="subtotal">₹0.00</b></div><button class="hero-button full" id="checkoutBtn">Proceed to checkout</button></div></div>
 <div class="modal hidden" id="productModal" role="dialog" aria-modal="true" aria-label="Product details"><button class="modal-x" data-close="productModal" aria-label="Close product" title="Close">×</button><div class="modal-card"><div id="productDetail"></div></div></div>
 <div class="toast hidden" id="toast"></div>
+<div class="modal hidden" id="customerAuthModal" role="dialog" aria-modal="true" aria-label="Customer account">
+  <button class="modal-x" data-close="customerAuthModal" aria-label="Close customer account">×</button>
+  <div class="modal-card customer-auth-card">
+    <div class="auth-tabs"><button type="button" class="auth-tab active" id="registerTab">New customer / Register</button><button type="button" class="auth-tab" id="loginTab">Already registered / Sign in</button></div>
+    <section id="registerPanel">
+      <span class="section-kicker">FIRST TIME HERE?</span><h2>Create your UMVIKA account</h2>
+      <p class="muted">We need your delivery details before placing your first order.</p>
+      <form id="registerForm" class="customer-form">
+        <div class="form-grid">
+          <label>Full name *<input name="fullName" required autocomplete="name"></label>
+          <label>Mobile number *<input name="mobile" required inputmode="numeric" maxlength="15" autocomplete="tel"></label>
+          <label>Email <span class="muted">(optional)</span><input name="email" type="email" autocomplete="email"></label>
+          <label>Pincode *<input name="pincode" required inputmode="numeric" maxlength="6" autocomplete="postal-code"></label>
+          <label class="wide">Address line 1 *<input name="addressLine1" required autocomplete="street-address"></label>
+          <label class="wide">Address line 2<input name="addressLine2"></label>
+          <label>Landmark<input name="landmark"></label>
+          <label>City *<input name="city" required autocomplete="address-level2"></label>
+          <label>State *<input name="state" required value="Karnataka" autocomplete="address-level1"></label>
+          <label>Password *<input name="password" type="password" minlength="8" required autocomplete="new-password"></label>
+          <label>Confirm password *<input name="confirmPassword" type="password" minlength="8" required autocomplete="new-password"></label>
+        </div>
+        <label class="consent-row"><input type="checkbox" name="whatsappConsent" value="Y"> <span>Send my <b>order tracking and offer updates</b> on WhatsApp.</span></label>
+        <label class="consent-row"><input type="checkbox" name="emailConsent" value="Y"> <span>Send my <b>order tracking and offer updates</b> by email.</span></label>
+        <p class="form-note">Both choices are optional. If you do not tick a box, the database stores <b>N</b> for that channel. If you tick it, the database stores <b>Y</b>.</p>
+        <p id="registerError" class="form-error hidden"></p>
+        <button class="hero-button full" type="submit">Create account &amp; continue to payment</button>
+      </form>
+    </section>
+    <section id="loginPanel" class="hidden">
+      <span class="section-kicker">WELCOME BACK</span><h2>Sign in to your account</h2>
+      <form id="customerLoginForm" class="customer-form">
+        <label>Mobile number *<input name="mobile" required inputmode="numeric" maxlength="15" autocomplete="tel"></label>
+        <label>Password *<input name="password" type="password" required autocomplete="current-password"></label>
+        <p id="loginError" class="form-error hidden"></p>
+        <button class="hero-button full" type="submit">Sign in &amp; continue to payment</button>
+      </form>
+    </section>
+  </div>
+</div>
+
+<div class="modal hidden" id="customerAccountModal" role="dialog" aria-modal="true" aria-label="My account">
+  <button class="modal-x" data-close="customerAccountModal" aria-label="Close account">×</button>
+  <div class="modal-card small" id="customerAccountContent"></div>
+</div>
+
 <div class="modal hidden" id="paymentStatusModal" role="dialog" aria-modal="true" aria-label="Payment status"><button class="modal-x" data-close="paymentStatusModal" aria-label="Close payment status" title="Close">×</button><div class="modal-card small"><span class="section-kicker">PAYMENT</span><h2 id="paymentStatusTitle">Payment status</h2><p id="paymentStatusText" class="muted"></p><button class="hero-button full" data-close="paymentStatusModal">Continue</button></div></div>
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script src="app.js"></script>
