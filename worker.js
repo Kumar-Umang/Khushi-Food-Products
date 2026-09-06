@@ -338,34 +338,32 @@ export default {async fetch(request,env){
     return asset(env,request,"/store"+url.pathname);
   }
 
-  // Control-panel hostname: the root remains the same customer home page.
-  // The protected application is available only at an explicit path.
+  // Control-panel hostname: root is customer home; /store/* is the actual control panel.
   if(CONTROL_HOSTS.has(host)){
-    if(url.pathname==="/"||url.pathname==="/index.html"||url.pathname==="/store"||url.pathname==="/store/"||url.pathname==="/store/index.html") return asset(env,request,"/store/index.html");
-    if(url.pathname==="/login"||url.pathname==="/admin"||url.pathname==="/admin/"||url.pathname==="/control/login"||url.pathname==="/control/login/") return Response.redirect(new URL("/control/",request.url),302);
-    if(url.pathname==="/control"||url.pathname==="/control/") return asset(env,request,"/control/index.html");
+    if(url.pathname==="/"||url.pathname==="/index.html") return asset(env,request,"/store/index.html");
+    if(url.pathname==="/login"||url.pathname==="/admin"||url.pathname==="/admin/"||url.pathname==="/control/login"||url.pathname==="/control/login/"||url.pathname==="/control"||url.pathname==="/control/") return asset(env,request,"/control/index.html");
     if(url.pathname==="/control/index.html") return asset(env,request,"/control/index.html");
     if(url.pathname==="/setup.html"||url.pathname==="/control/setup.html") return asset(env,request,"/control/setup.html");
-    if(url.pathname==="/app.js") return asset(env,request,"/store/app.js");
-    if(url.pathname==="/app.css") return asset(env,request,"/store/app.css");
-    if(url.pathname.startsWith("/store/")) return asset(env,request,url.pathname);
+    if(url.pathname==="/store"||url.pathname==="/store/"||url.pathname==="/store/index.html") return asset(env,request,"/control/index.html");
+    if(url.pathname.startsWith("/store/")) return asset(env,request,url.pathname.replace(/^\/store/,"/control"));
     if(url.pathname.startsWith("/assets/")) return asset(env,request,"/store"+url.pathname);
     if(url.pathname.startsWith("/control/")) return asset(env,request,url.pathname);
     return asset(env,request,"/store"+url.pathname);
   }
 
-  // Stock-and-billing hostname: the root remains the same customer home page.
-  // The protected application is available only at an explicit path.
+  // Stock-and-billing hostname: root is customer home; /store/* is the actual stock/billing app.
   if(STOCK_HOSTS.has(host)){
-    if(url.pathname==="/"||url.pathname==="/index.html"||url.pathname==="/store"||url.pathname==="/store/"||url.pathname==="/store/index.html") return asset(env,request,"/store/index.html");
-    if(url.pathname==="/login"||url.pathname==="/billing"||url.pathname==="/billing/"||url.pathname==="/billing/login"||url.pathname==="/billing/login/") return Response.redirect(new URL("/stock/",request.url),302);
-    if(url.pathname==="/stock"||url.pathname==="/stock/"||url.pathname==="/stock/login"||url.pathname==="/stock/login/") return asset(env,request,"/stock/index.html");
+    if(url.pathname==="/"||url.pathname==="/index.html") return asset(env,request,"/store/index.html");
+    if(url.pathname==="/login"||url.pathname==="/billing"||url.pathname==="/billing/"||url.pathname==="/billing/login"||url.pathname==="/billing/login/"||url.pathname==="/stock"||url.pathname==="/stock/"||url.pathname==="/stock/login"||url.pathname==="/stock/login/") return asset(env,request,"/stock/index.html");
     if(url.pathname==="/stock/index.html") return asset(env,request,"/stock/index.html");
     if(url.pathname.startsWith("/stock/")) return asset(env,request,url.pathname);
-    if(url.pathname==="/app.js") return asset(env,request,"/store/app.js");
-    if(url.pathname==="/app.css") return asset(env,request,"/store/app.css");
-    if(url.pathname.startsWith("/store/")) return asset(env,request,url.pathname);
+    if(url.pathname==="/store"||url.pathname==="/store/"||url.pathname==="/store/index.html") return asset(env,request,"/stock/index.html");
+    if(url.pathname.startsWith("/store/css/")) return asset(env,request,url.pathname.replace(/^\/store/,"/stock"));
+    if(url.pathname.startsWith("/store/js/")) return asset(env,request,url.pathname.replace(/^\/store/,"/stock"));
+    if(url.pathname==="/store/logo.png") return asset(env,request,"/stock/logo.png");
     if(url.pathname.startsWith("/assets/")) return asset(env,request,"/store"+url.pathname);
+    if(url.pathname.startsWith("/app.js")) return asset(env,request,"/stock/js/app.js");
+    if(url.pathname.startsWith("/app.css")) return asset(env,request,"/stock/css/app.css");
     return asset(env,request,"/store"+url.pathname);
   }
 
