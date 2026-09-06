@@ -1,4 +1,4 @@
-# Khushi Food Products — 3 Subdomain Production Starter + Razorpay
+# UMVIKA FOODS — 3 Subdomain Production Starter + Razorpay
 
 ## Final URLs
 - Customer store: https://khushifoodproducts.in/
@@ -156,3 +156,7 @@ The Worker explicitly supports `/store/*` as well as `/` so opening `/store/` do
 - Control Panel setup: `https://controlpanel.khushifoodproducts.in/setup.html`
 
 The root `/` on all three hostnames always remains the same customer-facing home page and does not display login options.
+
+
+## First administrator security
+Set the Cloudflare Worker secret `ADMIN_SETUP_TOKEN` before opening `/setup.html`. The setup API rejects requests without the token and permanently rejects setup after the first administrator exists.

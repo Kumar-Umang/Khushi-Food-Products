@@ -1,6 +1,6 @@
 {
   "business": {
-    "name": "Khushi Food Products",
+    "name": "UMVIKA FOODS",
     "phone": "+91 80734 55939",
     "gstin": "29AOGPR3564J1ZD",
     "address": "207 Sowparnika Tharangini, Ittangur, Sarjapur, Bangalore - 562125"
@@ -22,7 +22,8 @@
       "offerPrice": 0,
       "offerLabel": "",
       "image": "assets/products/ChanaMakhanaLaddu.jpeg",
-      "active": true
+      "active": true,
+      "bestSeller": true
     },
     {
       "id": "p2",
@@ -34,7 +35,8 @@
       "offerPrice": 0,
       "offerLabel": "",
       "image": "assets/products/Cornfloormixture.jpeg",
-      "active": true
+      "active": true,
+      "bestSeller": true
     },
     {
       "id": "p3",

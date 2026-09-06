@@ -15,10 +15,10 @@
     "not_found_handling": "single-page-application"
   },
   "d1_databases": [
-  {
-    "binding": "DB",
-    "database_name": "khushi-food-products-db",
-    "database_id": "bbd5dec7-3b41-44bc-9dc0-19aa9248f749"
-  }
-]
+    {
+      "binding": "DB",
+      "database_name": "khushi-food-products-db",
+      "database_id": "bbd5dec7-3b41-44bc-9dc0-19aa9248f749"
+    }
+  ]
 }

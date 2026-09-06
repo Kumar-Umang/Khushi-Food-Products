@@ -1,10 +1,12 @@
-const CART = "khushi_cart_v6";
-const PROFILE = "khushi_profile_v6";
+const CART = "umvika_cart_v1";
+const PROFILE = "umvika_profile_v1";
 const $ = (s) => document.querySelector(s);
 
 let store = { products: [], offers: { global: {} } };
 let cart = [];
 let currentCat = "all";
+let bestOnly = false;
+let offersOnly = false;
 let searchTerm = "";
 
 try { cart = JSON.parse(localStorage.getItem(CART) || "[]"); } catch { cart = []; }
@@ -27,8 +29,8 @@ function toast(message) {
   if (!el) return;
   el.textContent = message;
   el.classList.remove("hidden");
-  clearTimeout(window.__khushiToast);
-  window.__khushiToast = setTimeout(() => el.classList.add("hidden"), 2200);
+  clearTimeout(window.__umvikaToast);
+  window.__umvikaToast = setTimeout(() => el.classList.add("hidden"), 2200);
 }
 function showModal(id) { document.getElementById(id)?.classList.remove("hidden"); }
 function hideModal(id) { document.getElementById(id)?.classList.add("hidden"); }
@@ -77,6 +79,8 @@ function renderOffer() {
 function filteredProducts() {
   let list = (store.products || []).filter(p => p.active !== false);
   if (currentCat !== "all") list = list.filter(p => p.category === currentCat);
+  if (bestOnly) list = list.filter(p => p.bestSeller === true);
+  if (offersOnly) list = list.filter(p => Number(p.offerPrice) > 0);
   if ($("#availableOnly")?.checked) list = list.filter(p => activePrice(p) > 0);
   if (searchTerm) {
     const q = searchTerm.toLowerCase();
@@ -165,7 +169,7 @@ function openProduct(id) {
   detail.innerHTML = `<div><img src="${esc(p.image || "assets/logo.png")}" alt="${esc(p.name)}"></div>
     <div><span class="section-kicker">${esc(p.category || "PRODUCT")}</span><h2>${esc(p.name)}</h2><p>${esc(p.pack || "")}</p>
     <div class="bigprice">${money(price)}${Number(p.mrp) > price ? ` <span class="mrp">${money(p.mrp)}</span>` : ""}</div>
-    <p class="muted">Pure • Fresh • Wholesome</p>
+    <p class="muted">Traditional • Fresh • Wholesome</p>
     ${price > 0 ? `<button class="hero-button" data-add="${esc(p.id)}">Add to cart</button>` : `<div class="unpriced">Price will be updated soon</div>`}</div>`;
   showModal("productModal");
 }
@@ -193,7 +197,7 @@ async function startRazorpayCheckout() {
     const orderResponse = await fetch("/api/create-order", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ amount, currency: "INR", receipt: `khushi_${Date.now()}` })
+      body: JSON.stringify({ amount, currency: "INR", receipt: `umvika_${Date.now()}` })
     });
     let order = {};
     try { order = await orderResponse.json(); } catch {}
@@ -212,7 +216,7 @@ async function startRazorpayCheckout() {
       order_id: order.order_id,
       amount: order.amount,
       currency: order.currency,
-      name: "Khushi Food Products",
+      name: "UMVIKA FOODS",
       description: "Online order",
       image: "/store/assets/logo.png",
       prefill: { name: profile.name || "", email: profile.email || "", contact: profile.mobile || "" },
@@ -294,8 +298,11 @@ document.addEventListener("click", (event) => {
 
   const category = event.target.closest("[data-cat]");
   if (category) {
-    currentCat = category.dataset.cat || "all";
-    document.querySelectorAll(".filter").forEach(el => el.classList.toggle("active", el.dataset.cat === currentCat));
+    const value = category.dataset.cat || "all";
+    bestOnly = value === "best";
+    offersOnly = value === "offers";
+    currentCat = (bestOnly || offersOnly) ? "all" : value;
+    document.querySelectorAll("[data-cat]").forEach(el => el.classList.toggle("active", el === category));
     const searchCategory = $("#searchCategory");
     if (searchCategory) searchCategory.value = currentCat;
     renderProducts();
@@ -311,6 +318,8 @@ $("#checkoutBtn")?.addEventListener("click", startRazorpayCheckout);
 $("#search")?.addEventListener("input", (e) => { searchTerm = e.target.value.trim(); renderProducts(); });
 $("#searchBtn")?.addEventListener("click", () => { searchTerm = $("#search")?.value.trim() || ""; renderProducts(); location.hash = "shop"; });
 $("#searchCategory")?.addEventListener("change", (e) => {
+  bestOnly = false;
+  offersOnly = false;
   currentCat = e.target.value || "all";
   document.querySelectorAll(".filter").forEach(el => el.classList.toggle("active", el.dataset.cat === currentCat));
   renderProducts();
