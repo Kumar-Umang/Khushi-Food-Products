@@ -4,9 +4,10 @@
   "description": "## Final URLs - Customer store: https://khushifoodproducts.in/ - Control panel: https://controlpanel.khushifoodproducts.in/ - Stock & billing: https://stockandbilling.khushifoodproducts.in/",
   "main": "worker.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node QA_TESTS.mjs"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "type": "module"
 }

@@ -32,8 +32,33 @@ function toast(message) {
   clearTimeout(window.__umvikaToast);
   window.__umvikaToast = setTimeout(() => el.classList.add("hidden"), 2200);
 }
-function showModal(id) { document.getElementById(id)?.classList.remove("hidden"); }
-function hideModal(id) { document.getElementById(id)?.classList.add("hidden"); }
+function updateBodyLock() {
+  const open = [...document.querySelectorAll('.modal, .drawer')].some(el => !el.classList.contains('hidden'));
+  document.body.classList.toggle('overlay-open', open);
+}
+function showModal(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('hidden');
+  el.setAttribute('aria-hidden', 'false');
+  updateBodyLock();
+  requestAnimationFrame(() => el.querySelector('[data-close]')?.focus());
+}
+function hideModal(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.add('hidden');
+  el.setAttribute('aria-hidden', 'true');
+  updateBodyLock();
+}
+function hideAllOverlays() {
+  document.querySelectorAll('.modal, .drawer').forEach(el => {
+    el.classList.add('hidden');
+    el.setAttribute('aria-hidden', 'true');
+  });
+  updateBodyLock();
+}
+
 
 async function loadStore() {
   try {
@@ -256,8 +281,14 @@ async function startRazorpayCheckout() {
 }
 
 function closeAnyOverlay(target) {
-  if (target?.classList.contains("modal") || target?.classList.contains("drawer")) target.classList.add("hidden");
+  if (target?.classList.contains("modal") || target?.classList.contains("drawer")) hideModal(target.id);
 }
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    hideAllOverlays();
+  }
+});
 
 document.addEventListener("click", (event) => {
   const add = event.target.closest("[data-add]");
@@ -294,7 +325,7 @@ document.addEventListener("click", (event) => {
   }
 
   const close = event.target.closest("[data-close]");
-  if (close) { hideModal(close.dataset.close); return; }
+  if (close) { event.preventDefault(); hideModal(close.dataset.close); return; }
 
   const category = event.target.closest("[data-cat]");
   if (category) {
@@ -307,6 +338,11 @@ document.addEventListener("click", (event) => {
     if (searchCategory) searchCategory.value = currentCat;
     renderProducts();
     location.hash = "shop";
+    return;
+  }
+
+  if (event.target.id === "ordersInfo" || event.target.closest("#ordersInfo")) {
+    location.hash = "contact";
     return;
   }
 
@@ -329,3 +365,7 @@ $("#availableOnly")?.addEventListener("change", renderProducts);
 $("#clearSearch")?.addEventListener("click", () => { if ($("#search")) $("#search").value = ""; searchTerm = ""; renderProducts(); });
 
 loadStore();
+
+window.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll('.modal, .drawer').forEach(el => el.setAttribute('aria-hidden', el.classList.contains('hidden') ? 'true' : 'false'));
+});

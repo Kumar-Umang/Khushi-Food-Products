@@ -20,12 +20,12 @@
       <input id="search" type="search" placeholder="Search UMVIKA FOODS" autocomplete="off">
       <button id="searchBtn" aria-label="Search">🔍</button>
     </div>
-    <button class="header-link" id="ordersInfo"><span>Customer care</span><strong>&amp; Orders</strong></button>
+    <button class="header-link" id="ordersInfo" type="button"><span>Customer care</span><strong>&amp; Orders</strong></button>
     <button class="cart-link" id="cartBtn" aria-label="Open cart"><span class="cart-icon">🛒</span><span>Cart</span><b id="cartCount">0</b></button>
   </div>
   <nav class="nav-bar">
     <div class="page nav-inner">
-      <button class="all-menu" id="menuBtn">☰ <b>All</b></button>
+      <button class="all-menu nav-action" id="menuBtn" data-cat="all" aria-label="Show all products">☰ <b>All</b></button>
       <button class="nav-action" data-cat="best">Best Sellers</button>
       <button class="nav-action" data-cat="Namkeen &amp; Snacks">Namkeen &amp; Snacks</button>
       <button class="nav-action" data-cat="Laddu &amp; Sweets">Laddu &amp; Sweets</button>
@@ -102,9 +102,9 @@
 <footer><div class="page footer-grid"><div><img src="assets/logo.png" alt="UMVIKA FOODS"><p>Traditional • Fresh • Wholesome</p></div><div><strong>Shop</strong><a href="#shop">All products</a><button class="nav-action" data-cat="Namkeen &amp; Snacks">Namkeen &amp; Snacks</button><button class="nav-action" data-cat="Laddu &amp; Sweets">Laddu &amp; Sweets</button></div><div><strong>Customer care</strong><a href="#contact">Contact us</a><a href="https://wa.me/918073455939" target="_blank" rel="noopener">WhatsApp</a></div></div><div class="copyright">© <span id="year">2026</span> UMVIKA FOODS • GSTIN 29AOGPR3564J1ZD</div></footer>
 
 <div class="drawer hidden" id="cartDrawer"><div class="drawer-card"><div class="drawer-head"><h2>Your Cart</h2><button data-close="cartDrawer" aria-label="Close cart">×</button></div><div id="cartItems"></div><div class="cart-total"><span>Subtotal</span><b id="subtotal">₹0.00</b></div><button class="hero-button full" id="checkoutBtn">Proceed to checkout</button></div></div>
-<div class="modal hidden" id="productModal"><div class="modal-card"><button class="modal-x" data-close="productModal" aria-label="Close">×</button><div id="productDetail"></div></div></div>
+<div class="modal hidden" id="productModal" role="dialog" aria-modal="true" aria-label="Product details"><button class="modal-x" data-close="productModal" aria-label="Close product" title="Close">×</button><div class="modal-card"><div id="productDetail"></div></div></div>
 <div class="toast hidden" id="toast"></div>
-<div class="modal hidden" id="paymentStatusModal"><div class="modal-card small"><button class="modal-x" data-close="paymentStatusModal" aria-label="Close">×</button><span class="section-kicker">PAYMENT</span><h2 id="paymentStatusTitle">Payment status</h2><p id="paymentStatusText" class="muted"></p><button class="hero-button full" data-close="paymentStatusModal">Continue</button></div></div>
+<div class="modal hidden" id="paymentStatusModal" role="dialog" aria-modal="true" aria-label="Payment status"><button class="modal-x" data-close="paymentStatusModal" aria-label="Close payment status" title="Close">×</button><div class="modal-card small"><span class="section-kicker">PAYMENT</span><h2 id="paymentStatusTitle">Payment status</h2><p id="paymentStatusText" class="muted"></p><button class="hero-button full" data-close="paymentStatusModal">Continue</button></div></div>
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script src="app.js"></script>
 </body>
