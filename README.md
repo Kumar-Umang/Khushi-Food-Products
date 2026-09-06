@@ -36,3 +36,35 @@ The QA script validates syntax-level source assumptions, route mapping for all t
 2. Ensure D1 schema is applied once: `npx.cmd wrangler d1 execute khushi-food-products-db --remote --file=./schema.sql`
 3. Deploy: `npx.cmd wrangler deploy`
 4. Test the URLs above in a fresh/private browser session.
+
+
+## Paid-order email + SMS notifications
+After a customer payment is signature-verified, the Worker records the order as PAID and sends an internal order notification to `ORDER_EMAIL_TO` and `ORDER_SMS_TO`. Notification failures do not change a successful payment back to unpaid. Each channel is idempotently logged in `order_notifications` to prevent duplicate sends on retry.
+
+### Cloudflare Secrets
+Configure these as Worker Secrets (not in frontend code or Git):
+- `RESEND_API_KEY`
+- `ORDER_EMAIL_TO` (default: `contact@khushifoodproducts.in`)
+- `ORDER_EMAIL_FROM` (default: `UMVIKA FOODS <contact@khushifoodproducts.in>`)
+- `MSG91_AUTHKEY`
+- `MSG91_SMS_TEMPLATE_ID`
+- `MSG91_SMS_SENDER_ID`
+- `ORDER_SMS_TO` (default: `8073455939`)
+
+Resend requires the sending domain/address to be verified before using `contact@khushifoodproducts.in` as the From address. MSG91's India SMS flow requires an approved DLT entity/header/template; map the approved DLT template to `MSG91_SMS_TEMPLATE_ID` before sending.
+
+## Staff authentication and role-based access
+Staff accounts use one shared `users` table and one shared staff session cookie across all `*.khushifoodproducts.in` subdomains. A user created in Control Panel can sign in on Stock & Billing with the same username/password. The server enforces role permissions; UI hiding is only a convenience.
+
+Roles:
+- Admin: full Control Panel and Stock & Billing access; can create/update/delete staff users.
+- Manager: full business operations, but cannot manage staff users.
+- ProductManager: Control Panel product/photo/offer management only.
+- Billing: billing, sales, customers, settlements, returns, notes, reports in Stock & Billing.
+- Inventory: products, raw materials, purchases, production, suppliers, stock, reports in Stock & Billing.
+- Viewer: dashboard and reports only, read-only.
+
+Role access is enforced on `/api/control` and `/api/state`. For Stock & Billing writes, the API compares changed top-level business-state sections and rejects changes outside the caller's role.
+
+## First administrator
+Do not use a public default administrator. Create the first administrator only through the one-time bootstrap flow (or direct D1 insert if bootstrap is intentionally bypassed). After an administrator exists, `/api/setup` rejects further setup attempts.

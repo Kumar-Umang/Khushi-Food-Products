@@ -13,7 +13,7 @@ const defaultDB={
  products:[],rawMaterials:[],suppliers:[],customers:[],employees:[],purchases:[],sales:[],production:[],salary:[],expenses:[],stockTx:[],payments:[],salesReturns:[],creditDebitNotes:[]
 };
 function db(){return structuredClone(defaultDB)}
-let D=db(),serverStorage=false,saveQueue=Promise.resolve(),currentCustomer=null,currentUser=null;
+let D=db(),serverStorage=false,saveQueue=Promise.resolve(),currentCustomer=null;
 window.billItems=[];
 function normalizeState(x){
   const base=db(),src=(x&&typeof x==="object")?x:{};
@@ -33,28 +33,17 @@ function persist(){
 async function loadProjectState(){const r=await fetch(API_BASE+"/api/state",{cache:"no-store"});if(!r.ok)throw Error("Project storage server unavailable");D=normalizeState(await r.json());serverStorage=true}
 async function safePersist(){try{return await persist()}catch(e){toast("Please start the local server first.")}}
 async function logout(){await saveQueue;login()}
-const ROLE_PAGES={
-  Admin:new Set(['*']),
-  Manager:new Set(['dashboard','billing','sales','customers','settlement','returns','notes','products','raw','purchases','production','suppliers','employees','salary','expenses','stock','reports','settings']),
-  Billing:new Set(['dashboard','billing','sales','customers','settlement','returns','notes','reports']),
-  Inventory:new Set(['dashboard','products','raw','purchases','production','suppliers','stock','reports']),
-  Viewer:new Set(['dashboard','reports']),
-  ProductManager:new Set([])
-};
-function canPage(name){const set=ROLE_PAGES[currentUser?.role]||new Set();return set.has('*')||set.has(name)}
-function stockAccess(role){return ['Admin','Manager','Billing','Inventory','Viewer'].includes(role)}
-function login(message){document.getElementById("app").innerHTML=`<div class="login"><div class="login-card"><img class="login-logo" src="assets/logo.png"><h1>UMVIKA FOODS</h1><p>Staff Login</p>${message?`<div class="error">${esc(message)}</div>`:""}<div class="form-group" style="text-align:left"><label>Username</label><input id="lu" class="input" autocomplete="username" autofocus></div><div class="form-group" style="text-align:left"><label>Password</label><input id="lp" class="input" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div><div id="le" class="error"></div><button class="btn btn-primary" onclick="doLogin()">LOGIN</button></div></div>`;setTimeout(()=>document.getElementById("lu")?.focus(),0)}
-async function doLogin(){let u=lu.value.trim(),p=lp.value;try{let r=await fetch("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:u,password:p})});let x={};try{x=await r.json()}catch{};if(!r.ok||!x.ok){le.textContent=x.error||"Unable to sign in.";return}currentUser={username:x.username,role:x.role};if(!stockAccess(currentUser.role)){await fetch('/api/logout',{method:'POST'}).catch(()=>{});login('Your role does not have Stock & Billing access.');return}await loadProjectState();admin()}catch(e){le.textContent="Unable to sign in right now."}}
-function navButton(name,icon,label){return canPage(name)?`<button onclick="page('${name}')">${icon} <span>${label}</span></button>`:''}
+function login(message){document.getElementById("app").innerHTML=`<div class="login"><div class="login-card"><img class="login-logo" src="assets/logo.png"><h1>UMVIKA FOODS</h1><p>Administrator Login</p>${message?`<div class="error">${esc(message)}</div>`:""}<div class="form-group" style="text-align:left"><label>Username</label><input id="lu" class="input" autocomplete="username" autofocus></div><div class="form-group" style="text-align:left"><label>Password</label><input id="lp" class="input" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div><div id="le" class="error"></div><button class="btn btn-primary" onclick="doLogin()">LOGIN</button></div></div>`;setTimeout(()=>document.getElementById("lu")?.focus(),0)}
+async function doLogin(){let u=lu.value.trim(),p=lp.value;try{let r=await fetch("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:u,password:p})});let x=await r.json();if(r.ok&&x.ok){await loadProjectState();admin()}else le.textContent=x.error||"Invalid username or password."}catch(e){le.textContent="Unable to sign in right now."}}
 function admin(){document.getElementById("app").innerHTML=`<div class="app-shell"><aside class="sidebar"><div class="brand"><img src="assets/logo.png"><div><strong>UMVIKA FOODS</strong><small>Bill Book</small></div></div><div class="nav">
-<div class="nav-title">MAIN</div>${navButton('dashboard','🏠','Dashboard')}${navButton('billing','🧾','Generate Bill')}${navButton('sales','📄','Sales List')}${navButton('customers','👤','Customers')}
-<div class="nav-title">ACCOUNTS</div>${navButton('settlement','💳','Account Settlement')}${navButton('returns','↩️','Sales Return')}${navButton('notes','📝','Credit / Debit Notes')}
-<div class="nav-title">INVENTORY</div>${navButton('products','📦','Products')}${navButton('raw','🧂','Raw Materials')}${navButton('purchases','🛒','Purchases')}${navButton('production','🏭','Production')}${navButton('suppliers','🚚','Suppliers')}
-<div class="nav-title">EMPLOYEES</div>${navButton('employees','👥','Employees')}${navButton('salary','💰','Salary')}
-<div class="nav-title">OTHER</div>${navButton('expenses','💵','Expenses')}${navButton('stock','📋','Stock Ledger')}${navButton('reports','📊','Reports')}${navButton('settings','⚙️','Settings')}${(currentUser?.role==='Admin'||currentUser?.role==='Manager')?'<button onclick="backup()">💾 <span>Backup</span></button>':''}<button onclick="logout()">↩️ <span>Logout</span></button>
-</div></aside><main class="main"><div class="topbar"><h2 id="pageTitle">Dashboard</h2><div>${esc(D.settings.business_name)} · ${esc(currentUser?.role||'Staff')}</div></div><section id="content" class="content"></section></main></div>`;page("dashboard")}
+<div class="nav-title">MAIN</div><button onclick="page('dashboard')">🏠 <span>Dashboard</span></button><button onclick="page('billing')">🧾 <span>Generate Bill</span></button><button onclick="page('sales')">📄 <span>Sales List</span></button><button onclick="page('customers')">👤 <span>Customers</span></button>
+<div class="nav-title">ACCOUNTS</div><button onclick="page('settlement')">💳 <span>Account Settlement</span></button><button onclick="page('returns')">↩️ <span>Sales Return</span></button><button onclick="page('notes')">📝 <span>Credit / Debit Notes</span></button>
+<div class="nav-title">INVENTORY</div><button onclick="page('products')">📦 <span>Products</span></button><button onclick="page('raw')">🧂 <span>Raw Materials</span></button><button onclick="page('purchases')">🛒 <span>Purchases</span></button><button onclick="page('production')">🏭 <span>Production</span></button><button onclick="page('suppliers')">🚚 <span>Suppliers</span></button>
+<div class="nav-title">EMPLOYEES</div><button onclick="page('employees')">👥 <span>Employees</span></button><button onclick="page('salary')">💰 <span>Salary</span></button>
+<div class="nav-title">OTHER</div><button onclick="page('expenses')">💵 <span>Expenses</span></button><button onclick="page('stock')">📋 <span>Stock Ledger</span></button><button onclick="page('reports')">📊 <span>Reports</span></button><button onclick="page('settings')">⚙️ <span>Settings</span></button><button onclick="backup()">💾 <span>Backup</span></button><button onclick="logout()">↩️ <span>Logout</span></button>
+</div></aside><main class="main"><div class="topbar"><h2 id="pageTitle">Dashboard</h2><div>${esc(D.settings.business_name)} · Admin</div></div><section id="content" class="content"></section></main></div>`;page("dashboard")}
 const titles={dashboard:"Dashboard",billing:"Generate Bill / Sales",sales:"Sales List",customers:"Customers",settlement:"Account Settlement",returns:"Sales Return",notes:"Credit / Debit Notes",products:"Finished Products",raw:"Raw Materials",purchases:"Purchases",production:"Production",suppliers:"Suppliers",employees:"Employees",salary:"Salary",expenses:"Expenses",stock:"Stock Ledger",reports:"Reports",settings:"Settings"};
-function page(name){if(!canPage(name)){toast('Access denied for your role.');return}document.getElementById("pageTitle").textContent=titles[name]||name;({dashboard,billing,sales,customers,settlement,returns,notes,products,raw,purchases,production,suppliers,employees,salary,expenses,stock,reports,settings}[name])()}
+function page(name){document.getElementById("pageTitle").textContent=titles[name]||name;({dashboard,billing,sales,customers,settlement,returns,notes,products,raw,purchases,production,suppliers,employees,salary,expenses,stock,reports,settings}[name])()}
 function table(headers,rows){return `<div class="table-wrap"><table><thead><tr>${headers.map((h,i)=>`<th class="${i>headers.length-3?'num':''}">${esc(h)}</th>`).join("")}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map((x,i)=>`<td class="${i>headers.length-3?'num':''}">${x&&x.__html?x.value:esc(x)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`}
 function card(a,b){return `<div class="card"><div class="label">${a}</div><div class="value">${b}</div></div>`}
 function stockBalance(item,unit){return (D.stockTx||[]).filter(x=>x.unit===unit&&String(x.item)===String(item)).reduce((a,x)=>a+num(x.qty),0)}

@@ -1,10 +1,9 @@
 const PUBLIC_HOSTS = new Set(["khushifoodproducts.in", "www.khushifoodproducts.in"]);
 const CONTROL_HOSTS = new Set(["controlpanel.khushifoodproducts.in"]);
 const STOCK_HOSTS = new Set(["stockandbilling.khushifoodproducts.in"]);
-const COOKIE = "umvika_staff_session_v2";
+const COOKIE = "umvika_session";
 const CUSTOMER_COOKIE = "umvika_customer_session";
 const SESSION_DAYS = 7;
-const STAFF_COOKIE_DOMAIN = ".khushifoodproducts.in";
 const CUSTOMER_SESSION_DAYS = 30;
 
 const encoder = new TextEncoder();
@@ -16,32 +15,10 @@ async function sha256Hex(input){const b=typeof input==="string"?encoder.encode(i
 function rand(n=32){const b=new Uint8Array(n);crypto.getRandomValues(b);return [...b].map(x=>x.toString(16).padStart(2,"0")).join("")}
 async function hashPassword(password,salt){const key=await crypto.subtle.importKey("raw",encoder.encode(password),"PBKDF2",false,["deriveBits"]);const bits=await crypto.subtle.deriveBits({name:"PBKDF2",salt:encoder.encode(salt),iterations:100000,hash:"SHA-256"},key,256);return [...new Uint8Array(bits)].map(x=>x.toString(16).padStart(2,"0")).join("")}
 function parseCookies(request){const out={};for(const p of (request.headers.get("Cookie")||"").split(";")){const i=p.indexOf("=");if(i>0)out[p.slice(0,i).trim()]=decodeURIComponent(p.slice(i+1).trim())}return out}
-function setCookie(token){return `${COOKIE}=${encodeURIComponent(token)}; Domain=${STAFF_COOKIE_DOMAIN}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${SESSION_DAYS*86400}`}
-function clearCookie(){return `${COOKIE}=; Domain=${STAFF_COOKIE_DOMAIN}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`}
+function setCookie(token){return `${COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${SESSION_DAYS*86400}`}
+function clearCookie(){return `${COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`}
 async function session(request,env){const t=parseCookies(request)[COOKIE];if(!t)return null;const th=await sha256Hex(t);return env.DB.prepare("SELECT s.user_id,u.username,u.role FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=? AND s.expires_at>datetime('now')").bind(th).first()}
 async function requireAuth(request,env){const s=await session(request,env);return s||false}
-
-const ROLE_RULES={
-  Admin:{control:true,stock:true,controlWrite:true,stockWrite:true,users:true,backup:true},
-  Manager:{control:true,stock:true,controlWrite:true,stockWrite:true,users:false,backup:true},
-  ProductManager:{control:true,stock:false,controlWrite:true,stockWrite:false,users:false,backup:false},
-  Billing:{control:false,stock:true,controlWrite:false,stockWrite:true,users:false,backup:false},
-  Inventory:{control:false,stock:true,controlWrite:false,stockWrite:true,users:false,backup:false},
-  Viewer:{control:false,stock:true,controlWrite:false,stockWrite:false,users:false,backup:false}
-};
-const ROLE_ALLOWED_STATE={
-  Admin:null,
-  Manager:null,
-  Billing:new Set(["customers","sales","payments","salesReturns","creditDebitNotes"]),
-  Inventory:new Set(["products","rawMaterials","suppliers","purchases","production","stockTx"]),
-  Viewer:new Set()
-};
-function roleRules(role){return ROLE_RULES[role]||ROLE_RULES.Viewer}
-function canRole(role,permission){return !!roleRules(role)[permission]}
-function roleDenied(permission){return json({ok:false,error:`Your role does not have ${permission} access`},403)}
-async function requirePermission(request,env,permission){const s=await session(request,env);if(!s)return false;return canRole(s.role,permission)?s:false}
-function stateChangedKeys(oldState,newState){const keys=new Set();const all=new Set([...Object.keys(oldState||{}),...Object.keys(newState||{})]);for(const k of all){if(JSON.stringify(oldState?.[k])!==JSON.stringify(newState?.[k]))keys.add(k)}return keys}
-function roleCanChangeState(role,keys){const allowed=ROLE_ALLOWED_STATE[role];if(allowed===null)return true;for(const k of keys)if(!allowed.has(k))return false;return true}
 
 function setCustomerCookie(token){return `${CUSTOMER_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${CUSTOMER_SESSION_DAYS*86400}`}
 function clearCustomerCookie(){return `${CUSTOMER_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`}
@@ -198,40 +175,6 @@ async function login(request,env){let b={};try{b=await request.json()}catch{};co
 async function setupStatus(env){const r=await env.DB.prepare("SELECT COUNT(*) AS n FROM users").first();return json({setupRequired:Number(r?.n||0)===0})}
 async function setup(request,env){const count=await env.DB.prepare("SELECT COUNT(*) AS n FROM users").first();if(Number(count?.n||0)>0)return json({ok:false,error:"Administrator setup is already disabled"},409);if(!env.ADMIN_SETUP_TOKEN)return json({ok:false,error:"Administrator setup is not configured on the server"},503);let b={};try{b=await request.json()}catch{return json({ok:false,error:"Invalid JSON body"},400)};const bootstrap=String(b.setupToken||"");if(!bootstrap||bootstrap!==env.ADMIN_SETUP_TOKEN)return json({ok:false,error:"Invalid setup token"},403);const username=String(b.username||"").trim(),password=String(b.password||"");if(username.length<3||password.length<8)return json({ok:false,error:"Use a username of at least 3 characters and a password of at least 8 characters"},400);const salt=rand(16),ph=await hashPassword(password,salt);const r=await env.DB.prepare("INSERT INTO users(username,password_hash,salt,role) VALUES(?,?,?,'Admin')").bind(username,ph,salt).run();const token=rand(32),th=await sha256Hex(token);await env.DB.prepare("INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(?,?,datetime('now','+7 days'))").bind(th,r.meta.last_row_id).run();return json({ok:true},200,{"Set-Cookie":setCookie(token)})}
 
-async function listUsers(request,env,s){
-  if(!canRole(s.role,"users"))return roleDenied("user management");
-  const r=await env.DB.prepare("SELECT id,username,role,created_at FROM users ORDER BY id ASC").all();
-  return json({ok:true,users:r.results||[]});
-}
-async function createUser(request,env,s){
-  if(!canRole(s.role,"users"))return roleDenied("user management");
-  let b={};try{b=await request.json()}catch{return json({ok:false,error:"Invalid JSON body"},400)}
-  const username=String(b.username||"").trim(),password=String(b.password||""),role=String(b.role||"").trim();
-  if(username.length<3||password.length<8)return json({ok:false,error:"Username must be at least 3 characters and password at least 8 characters"},400);
-  if(!ROLE_RULES[role])return json({ok:false,error:"Invalid role"},400);
-  if(role==="Admin"&&s.role!=="Admin")return roleDenied("Admin role assignment");
-  const exists=await env.DB.prepare("SELECT id FROM users WHERE username=?").bind(username).first();
-  if(exists)return json({ok:false,error:"Username already exists"},409);
-  const salt=rand(16),ph=await hashPassword(password,salt);
-  try{const r=await env.DB.prepare("INSERT INTO users(username,password_hash,salt,role) VALUES(?,?,?,?)").bind(username,ph,salt,role).run();return json({ok:true,user:{id:r.meta.last_row_id,username,role}})}catch(e){return json({ok:false,error:"Unable to create user"},500)}
-}
-async function updateUserRole(request,env,s,userId){
-  if(!canRole(s.role,"users"))return roleDenied("user management");
-  const id=Number(userId);if(!Number.isInteger(id)||id<=0)return json({ok:false,error:"Invalid user id"},400);
-  let b={};try{b=await request.json()}catch{return json({ok:false,error:"Invalid JSON body"},400)}
-  const role=String(b.role||"").trim();if(!ROLE_RULES[role])return json({ok:false,error:"Invalid role"},400);
-  const target=await env.DB.prepare("SELECT id,username,role FROM users WHERE id=?").bind(id).first();if(!target)return json({ok:false,error:"User not found"},404);
-  if(target.id===s.user_id&&role!=="Admin")return json({ok:false,error:"You cannot remove Admin role from your own account"},400);
-  if(role==="Admin"&&s.role!=="Admin")return roleDenied("Admin role assignment");
-  await env.DB.prepare("UPDATE users SET role=? WHERE id=?").bind(role,id).run();return json({ok:true,user:{id:target.id,username:target.username,role}});
-}
-async function deleteUser(request,env,s,userId){
-  if(!canRole(s.role,"users"))return roleDenied("user management");
-  const id=Number(userId);if(!Number.isInteger(id)||id<=0)return json({ok:false,error:"Invalid user id"},400);
-  if(id===s.user_id)return json({ok:false,error:"You cannot delete your own account"},400);
-  const target=await env.DB.prepare("SELECT id,username FROM users WHERE id=?").bind(id).first();if(!target)return json({ok:false,error:"User not found"},404);
-  await env.DB.prepare("DELETE FROM users WHERE id=?").bind(id).run();return json({ok:true});
-}
 async function changeCredentials(request,env,s){let b={};try{b=await request.json()}catch{};const current=String(b.currentPassword||""),nu=String(b.newUsername||"").trim(),np=String(b.newPassword||"");const u=await env.DB.prepare("SELECT * FROM users WHERE id=?").bind(s.user_id).first();if(!u)return json({ok:false,error:"User not found"},404);if(await hashPassword(current,u.salt)!==u.password_hash)return json({ok:false,error:"Current password is incorrect"},400);if(nu.length<3||np.length<8)return json({ok:false,error:"Username must be at least 3 characters and password at least 8 characters"},400);const salt=rand(16),ph=await hashPassword(np,salt);try{await env.DB.prepare("UPDATE users SET username=?,password_hash=?,salt=? WHERE id=?").bind(nu,ph,salt,s.user_id).run()}catch(e){return json({ok:false,error:"Username may already be in use"},400)}return json({ok:true})}
 
 async function makePdf(bill,env,request){
@@ -309,14 +252,10 @@ async function api(request,env,url,host){
   if(url.pathname==="/api/verify-payment"&&request.method==="POST")return verifyCustomerRazorpayPayment(request,env);
   if(url.pathname==="/api/store"&&request.method==="GET"){let c=await getKV(env,"store_catalog",seedCatalog);return json(c)}
   if(url.pathname==="/api/change-credentials"&&request.method==="POST"){const s=await requireAuth(request,env);if(!s)return unauthorized();return changeCredentials(request,env,s)}
-  if(url.pathname==="/api/users"&&request.method==="GET"){const s=await requireAuth(request,env);if(!s)return unauthorized();return listUsers(request,env,s)}
-  if(url.pathname==="/api/users"&&request.method==="POST"){const s=await requireAuth(request,env);if(!s)return unauthorized();return createUser(request,env,s)}
-  if(url.pathname.startsWith("/api/users/")&&request.method==="PUT"){const s=await requireAuth(request,env);if(!s)return unauthorized();return updateUserRole(request,env,s,url.pathname.split("/").pop())}
-  if(url.pathname.startsWith("/api/users/")&&request.method==="DELETE"){const s=await requireAuth(request,env);if(!s)return unauthorized();return deleteUser(request,env,s,url.pathname.split("/").pop())}
-  if(url.pathname==="/api/control"&&(request.method==="GET"||request.method==="POST")){const s=await requireAuth(request,env);if(!s)return unauthorized();if(!canRole(s.role,request.method==="GET"?"control":"controlWrite"))return roleDenied("control panel");if(request.method==="GET")return json({state:await getKV(env,"store_catalog",seedCatalog),user:{username:s.username,role:s.role}});let b=await request.json();if(!b||!Array.isArray(b.products))return json({ok:false,error:"Invalid catalog"},400);await putKV(env,"store_catalog",b);return json({ok:true})}
-  if(url.pathname==="/api/state"&&(request.method==="GET"||request.method==="POST")){const s=await requireAuth(request,env);if(!s)return unauthorized();if(!canRole(s.role,request.method==="GET"?"stock":"stockWrite"))return roleDenied("stock & billing");if(request.method==="GET")return json(await getKV(env,"business_state",emptyBusiness));let b=await request.json();if(!b||typeof b!=="object")return json({ok:false,error:"Invalid state"},400);const old=await getKV(env,"business_state",emptyBusiness);const changed=stateChangedKeys(old,b);if(!roleCanChangeState(s.role,changed))return roleDenied("the requested data");await putKV(env,"business_state",b);return json({ok:true})}
-  if(url.pathname==="/api/backup"&&request.method==="POST"){const s=await requireAuth(request,env);if(!s)return unauthorized();if(!canRole(s.role,"backup"))return roleDenied("backup");const data=await getKV(env,"business_state",emptyBusiness);await env.DB.prepare("INSERT INTO backups(data) VALUES(?)").bind(JSON.stringify(data)).run();return json({ok:true})}
-  if(url.pathname==="/api/invoice"&&request.method==="POST"){const s=await requireAuth(request,env);if(!s)return unauthorized();if(!canRole(s.role,"stockWrite"))return roleDenied("invoice");let x=await request.json();return makePdf(x.bill||{},env,request)}
+  if(url.pathname==="/api/control"&&(request.method==="GET"||request.method==="POST")){const s=await requireAuth(request,env);if(!s)return unauthorized();if(request.method==="GET")return json({state:await getKV(env,"store_catalog",seedCatalog),user:{username:s.username,role:s.role}});let b=await request.json();if(!b||!Array.isArray(b.products))return json({ok:false,error:"Invalid catalog"},400);await putKV(env,"store_catalog",b);return json({ok:true})}
+  if(url.pathname==="/api/state"&&(request.method==="GET"||request.method==="POST")){const s=await requireAuth(request,env);if(!s)return unauthorized();if(request.method==="GET")return json(await getKV(env,"business_state",emptyBusiness));let b=await request.json();if(!b||typeof b!=="object")return json({ok:false,error:"Invalid state"},400);await putKV(env,"business_state",b);return json({ok:true})}
+  if(url.pathname==="/api/backup"&&request.method==="POST"){const s=await requireAuth(request,env);if(!s)return unauthorized();const data=await getKV(env,"business_state",emptyBusiness);await env.DB.prepare("INSERT INTO backups(data) VALUES(?)").bind(JSON.stringify(data)).run();return json({ok:true})}
+  if(url.pathname==="/api/invoice"&&request.method==="POST"){const s=await requireAuth(request,env);if(!s)return unauthorized();let x=await request.json();return makePdf(x.bill||{},env,request)}
   return json({ok:false,error:"Not found"},404)
 }
 

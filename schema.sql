@@ -127,3 +127,19 @@ CREATE TABLE IF NOT EXISTS checkout_orders (
   FOREIGN KEY(customer_order_id) REFERENCES customer_orders(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_checkout_orders_customer_order ON checkout_orders(customer_order_id);
+
+
+-- Notification delivery log for paid customer orders.
+CREATE TABLE IF NOT EXISTS order_notifications (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  customer_order_id INTEGER NOT NULL,
+  channel TEXT NOT NULL CHECK(channel IN ('EMAIL','SMS')),
+  status TEXT NOT NULL CHECK(status IN ('SENT','FAILED')),
+  provider_message TEXT,
+  error TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(customer_order_id, channel),
+  FOREIGN KEY(customer_order_id) REFERENCES customer_orders(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_order_notifications_order ON order_notifications(customer_order_id);

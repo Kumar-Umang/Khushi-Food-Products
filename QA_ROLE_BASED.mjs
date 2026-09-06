@@ -1,0 +1,15 @@
+import fs from 'fs';
+import assert from 'assert';
+const worker=fs.readFileSync('worker.js','utf8');
+const control=fs.readFileSync('public/control/index.html','utf8');
+const stock=fs.readFileSync('public/stock/js/app.js','utf8');
+assert(worker.includes('const COOKIE = "umvika_staff_session_v2";'));
+assert(worker.includes('Domain=${STAFF_COOKIE_DOMAIN}'));
+for(const role of ['Admin','Manager','ProductManager','Billing','Inventory','Viewer']) assert(worker.includes(role), `missing role ${role}`);
+assert(worker.includes('/api/users')); assert(worker.includes('Your role does not have'));
+assert(worker.includes('stateChangedKeys(old,b)'));
+assert(worker.includes('roleCanChangeState(s.role,changed)'));
+assert(control.includes('User Management')); assert(control.includes('Create User')); assert(control.includes('Save Role'));
+assert(stock.includes('ROLE_PAGES')); assert(stock.includes("Viewer:new Set(['dashboard','reports'])"));
+assert(stock.includes('Your role does not have Stock & Billing access.'));
+console.log('ROLE-BASED ACCESS QA PASSED');
